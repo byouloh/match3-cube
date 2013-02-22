@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Assets.Scripts.Common;
 using UnityEngine;
 
 namespace Assets.Scripts.Levels
@@ -9,7 +10,7 @@ namespace Assets.Scripts.Levels
 		public static VirusesBehaviour Instance;
 		
 		private List<VirusItem> _viruses;
-		private float _lastVirusAddedTime;
+		private TimeEvent _newVirusEvent;
 
 		public Transform VirusPrefab;
 		public float StepDelay;
@@ -32,7 +33,7 @@ namespace Assets.Scripts.Levels
 						virusItem.Move();
 				}
 
-				if (_lastVirusAddedTime + NextVirusDelay <= Time.time && _viruses.Count < MaxVirusesCount)
+				if (_newVirusEvent.PopIsOccurred() && _viruses.Count < MaxVirusesCount)
 				{
 					AddVirus();
 				}
@@ -41,6 +42,7 @@ namespace Assets.Scripts.Levels
 
 		public override void OnRun()
 		{
+			_newVirusEvent = new TimeEvent(NextVirusDelay);
 			AddVirus();
 		}
 
@@ -50,7 +52,6 @@ namespace Assets.Scripts.Levels
 			VirusItem virusItem = virus.GetComponent<VirusItem>();
 			virusItem.Init();
 			_viruses.Add(virusItem);
-			_lastVirusAddedTime = Time.time;
 		}
 
 		public override void OnStop()

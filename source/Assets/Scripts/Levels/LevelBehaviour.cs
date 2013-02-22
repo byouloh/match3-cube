@@ -19,11 +19,6 @@ namespace Assets.Scripts.Levels
 		}
 
 		public abstract void OnRun();
-		public abstract void OnStop();
-
-		public virtual void OnMoveUpColumn(int x, int y)
-		{
-			
-		}
+		public abstract void OnStop();		
 	}
 }

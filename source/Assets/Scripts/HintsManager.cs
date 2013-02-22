@@ -1,4 +1,5 @@
-﻿using Assets.Scripts.Common;
+﻿using System;
+using Assets.Scripts.Common;
 using Assets.Scripts.Events;
 using UnityEngine;
 
@@ -10,6 +11,7 @@ namespace Assets.Scripts
 
 		private float _lastTimeStateChanged;
 		private float _lastTimeHintShowed;
+		private bool _hasStartGameHint;
 
 		public float HintPauseDelay;
 		public float OneHitPeriodDelay;
@@ -22,6 +24,22 @@ namespace Assets.Scripts
 		public void Start()
 		{
 			GameEvents.StateChanged.Subscribe(OnStateChanged);
+			GameEvents.NewGameStarted.Subscribe(OnNewGameStarted);
+		}
+
+		public void Update()
+		{
+			if (_lastTimeStateChanged + HintPauseDelay <= Time.time &&
+			    _lastTimeHintShowed + OneHitPeriodDelay <= Time.time)
+			{
+				ShowHint(0.5f);
+			}
+
+			if (_hasStartGameHint && !GameLocker.IsLocked)
+			{
+				_hasStartGameHint = false;
+				ShowHint(3);
+			}
 		}
 
 		private void OnStateChanged(GameEventArgs gameEventArgs)
@@ -30,20 +48,16 @@ namespace Assets.Scripts
 			_lastTimeHintShowed = Time.time;
 		}
 
-		public void Update()
+		private void OnNewGameStarted(GameEventArgs gameEventArgs)
 		{
-			if (_lastTimeStateChanged + HintPauseDelay <= Time.time &&
-			    _lastTimeHintShowed + OneHitPeriodDelay <= Time.time)
-			{
-				ShowHint();
-			}
-		}
+			_hasStartGameHint = true;
+		}		
 
-		private void ShowHint()
+		private void ShowHint(float duration)
 		{
 			if (FieldManager.Instance.HasAvailableMoves())
 			{
-				FieldManager.Instance.ShowAvailableMove();
+				FieldManager.Instance.ShowAvailableMove(duration);
 				_lastTimeHintShowed = Time.time;
 			}
 		}

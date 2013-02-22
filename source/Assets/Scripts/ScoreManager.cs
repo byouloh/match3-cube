@@ -12,7 +12,8 @@ namespace Assets.Scripts
 
 		public int Score { get; private set; }
 		public int ViewScore { get; private set; }
-		
+
+		public int ScoreByCube;
 		public GUIStyle ToastStyle;
 
 		public static ScoreManager Instance { get; private set; }
@@ -47,7 +48,7 @@ namespace Assets.Scripts
 
 		private void OnMatchesRemoved(MatchesEventArgs matchesEventArgs)
 		{
-			int addingScore = matchesEventArgs.Matches.Sum(m => 5*(2*m.Cubes.Count - 3));
+			int addingScore = matchesEventArgs.Matches.Sum(m => ScoreByCube*(2*m.Cubes.Count - 3));
 			ViewScore = Score;
 			Score += addingScore;
 			iTween.ValueTo(gameObject, iTween.Hash(iT.ValueTo.from, ViewScore, iT.ValueTo.to, Score,
@@ -59,7 +60,7 @@ namespace Assets.Scripts
 			foreach (CubeItem cubeItem in matchesEventArgs.Matches.SelectMany(m => m.Cubes))
 			{
 				Vector2 screenCoords = Camera.main.WorldToScreenPoint(cubeItem.transform.position);
-				ToastManager.Push("+5",
+				ToastManager.Push(ScoreByCube.ToString(),
 				                  new Vector2(screenCoords.x, Screen.height - screenCoords.y),
 				                  SCORE_TOAST_STYLE);
 			}

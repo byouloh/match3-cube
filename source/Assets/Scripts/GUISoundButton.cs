@@ -1,21 +1,23 @@
-using Assets.Scripts;
 using UnityEngine;
 
-public class GUISoundButton : MonoBehaviour 
+namespace Assets.Scripts
 {
-	void OnGUI()
+	public class GUISoundButton : MonoBehaviour 
 	{
-		if(GUI.Button(new Rect(0, Screen.height - 80, 50, 40), "Sound"))
+		void OnGUI()
 		{
-			AudioManager.SoundSwitchOnOff();
-		}
+			if(GUI.Button(new Rect(0, Screen.height - 80, 50, 40), "Sound"))
+			{
+				AudioManager.SoundSwitchOnOff();
+			}
 
-		if (GUI.Button(new Rect(60, Screen.height - 80, 50, 40), "Music"))
-		{
-			AudioManager.MusicSwitchOnOff();
-		}
+			if (GUI.Button(new Rect(60, Screen.height - 80, 50, 40), "Music"))
+			{
+				AudioManager.MusicSwitchOnOff();
+			}
 
+
+		}
 
 	}
-
 }

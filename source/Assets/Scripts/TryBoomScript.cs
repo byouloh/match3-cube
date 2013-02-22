@@ -83,7 +83,7 @@ namespace Assets.Scripts
 		private void FailBoom()
 		{
 			TimerManager.Instance.AddPenaltySeconds(5);
-			FieldManager.Instance.ShowAvailableMove();
+			FieldManager.Instance.ShowAvailableMove(0.5f);
 		}
 
 		private void Boom()

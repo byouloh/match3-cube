@@ -1,4 +1,4 @@
-﻿
+﻿using Assets.Scripts.Events;
 
 namespace Assets.Scripts.Levels
 {
@@ -11,6 +11,11 @@ namespace Assets.Scripts.Levels
 			Instance = this;
 		}
 
+		public void Start()
+		{
+			GameEvents.ColumnMovedUp.Subscribe(OnColumnMovedUp);
+		}
+
 		public override void OnRun()
 		{
 		}
@@ -21,9 +26,14 @@ namespace Assets.Scripts.Levels
 				cube.TransformToDefault();
 		}
 
-		public override void OnMoveUpColumn(int x, int y)
+		private void OnColumnMovedUp(PositionEventArgs positionEventArgs)
 		{
-			FieldManager.Instance.GetCube(x, y).TransformToQuestion();
+			if (IsActive)
+			{
+				FieldManager.Instance
+				            .GetCube(positionEventArgs.Position.X, positionEventArgs.Position.Y)
+				            .TransformToQuestion();
+			}
 		}
 	}
 }

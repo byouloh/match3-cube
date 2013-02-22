@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Assets.Scripts.Common;
+using Assets.Scripts.Events;
 using Assets.Scripts.ToastManagement;
 using UnityEngine;
 
@@ -47,7 +48,8 @@ namespace Assets.Scripts.Levels
 				_levels = new List<Level>();
 				LevelBehaviour[] behaviours = new LevelBehaviour[]
 					{
-						EmptyBehaviour.Instance,//CubeTurnBehaviour.Instance,
+						//RunAwayBehaviour.Instance,
+						WiggleBehaviour.Instance,
 						DayNightBehaviour.Instance,
 						MolesBehaviour.Instance,
 						TurnBehaviour.Instance,
@@ -59,7 +61,7 @@ namespace Assets.Scripts.Levels
 					};
 
 				if (isRandom)
-					GameRandom.MixUpArray(behaviours);
+					GameRandom.ShuffleArray(behaviours);
 
 				_levels.Add(new Level
 					{
@@ -67,6 +69,7 @@ namespace Assets.Scripts.Levels
 						Title = "First level",
 						Points = 100,
 						Behaviour = EmptyBehaviour.Instance
+						//Behaviour = QuestionsBehaviour.Instance
 					});
 				_levels.Add(new Level
 					{
@@ -79,56 +82,56 @@ namespace Assets.Scripts.Levels
 					{
 						Number = 3,
 						Title = "Level 3",
-						Points = 250,
+						Points = 350,
 						Behaviour = behaviours[1]
 					});
 				_levels.Add(new Level
 					{
 						Number = 4,
 						Title = "Level 4",
-						Points = 250,
+						Points = 350,
 						Behaviour = behaviours[2]
 					});
 				_levels.Add(new Level
 					{
 						Number = 5,
 						Title = "Level 5",
-						Points = 250,
+						Points = 350,
 						Behaviour = behaviours[3]
 					});
 				_levels.Add(new Level
 					{
 						Number = 6,
 						Title = "Level 6",
-						Points = 250,
+						Points = 350,
 						Behaviour = behaviours[4]
 					});
 				_levels.Add(new Level
 					{
 						Number = 7,
 						Title = "Level 7",
-						Points = 250,
+						Points = 350,
 						Behaviour = behaviours[5]
 					});
 				_levels.Add(new Level
 					{
 						Number = 8,
 						Title = "Level 8",
-						Points = 250,
+						Points = 350,
 						Behaviour = behaviours[6]
 					});
 				_levels.Add(new Level
 					{
 						Number = 9,
 						Title = "Level 9",
-						Points = 250,
+						Points = 350,
 						Behaviour = behaviours[7]
 					});
 				_levels.Add(new Level
 					{
 						Number = 10,
 						Title = "Level 10",
-						Points = 250,
+						Points = 350,
 						Behaviour = behaviours[8]
 					});
 			}
@@ -188,7 +191,7 @@ namespace Assets.Scripts.Levels
 			if (level.Number > 1)
 			{
 				AudioManager.Play(Sound.NextLevel);
-				TimerManager.OnNextLevel();
+				GameEvents.NextLevel.Publish(new GameEventArgs());
 			}
 		}
 

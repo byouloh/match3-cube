@@ -1,5 +1,6 @@
+using System;
 using Assets.Scripts.Levels;
-using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Assets.Scripts.Common
 {
@@ -13,7 +14,7 @@ namespace Assets.Scripts.Common
 		public static Position NextPosition()
 		{
 			return new Position(Random.Range(0, FieldManager.Instance.X),
-			                    Random.Range(0, FieldManager.Instance.Y));
+								Random.Range(0, FieldManager.Instance.Y));
 		}
 
 		public static Position NextPosition(int maxX, int maxY)
@@ -38,15 +39,15 @@ namespace Assets.Scripts.Common
 			}
 		}
 
-		public static void MixUpArray<T>(T[] array)
+		public static void ShuffleArray<T>(T[] array)
 		{
-			for (int i = 0; i < array.Length*5; i++)
+			T[] source = new T[array.Length];
+			Array.Copy(array, source, array.Length);
+			for (int i = 1; i < array.Length; i++)
 			{
-				int ind1 = Random.Range(0, array.Length);
-				int ind2 = Random.Range(0, array.Length);
-				T temp = array[ind1];
-				array[ind1] = array[ind2];
-				array[ind2] = temp;
+				int indRnd = Random.Range(0, i + 1);
+				array[i] = array[indRnd];
+				array[indRnd] = source[i];
 			}
 		}
 

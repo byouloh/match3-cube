@@ -22,16 +22,17 @@ namespace Assets.Scripts
 		public GUIStyle BonusToastStyle;
 		public GUIStyle PenaltyToastStyle;
 		public Texture2D FadeBackground;
+		public int NextLevelBonusTime;
 
 		public static TimerManager Instance { get; private set; }
 
-		void Awake()
+		public void Awake()
 		{
 			Instance = this;
 			_cameraFade = iTween.CameraFadeAdd(FadeBackground);
 		}
 
-		void Start ()
+		public void Start ()
 		{
 			Reset();
 
@@ -52,6 +53,7 @@ namespace Assets.Scripts
 									   });
 
 			GameEvents.MatchesRemoved.Subscribe(OnMatchesRemoved);
+			GameEvents.NextLevel.Subscribe(OnNextLevel);
 		}
 
 		private void OnMatchesRemoved(MatchesEventArgs matchesEventArgs)
@@ -90,7 +92,7 @@ namespace Assets.Scripts
 			AudioManager.Play(Sound.Fail);
 		}
 
-		void OnGUI()
+		public void OnGUI()
 		{
 			int remainSeconds = Mathf.Clamp(SecondsOnStart + _bonusSeconds - _penaltySeconds - (int) (Time.time - _startTime),
 			                                0, int.MaxValue);
@@ -125,10 +127,11 @@ namespace Assets.Scripts
 			Instance._isNearToOver = false;
 		}
 
-		public static void OnNextLevel()
+		private void OnNextLevel(GameEventArgs gameEventArgs)
 		{
-			Instance.AddBonusSeconds(30);
+			AddBonusSeconds(NextLevelBonusTime);
 		}
+
 
 	}
 }
