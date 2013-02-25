@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Assets.Scripts.Common;
 using Assets.Scripts.Events;
+using Assets.Scripts.Levels.SnakeLevel;
 using Assets.Scripts.ToastManagement;
 using UnityEngine;
 
@@ -19,7 +20,6 @@ namespace Assets.Scripts.Levels
 		public GUIStyle ToastStyle;
 		public Level CurrentLevel { get; private set; }
 
-
 		public static LevelsManager Instance { get; private set; }
 
 		public void Awake()
@@ -35,10 +35,23 @@ namespace Assets.Scripts.Levels
 									   });
 		}
 
-		public static void Reset()
+		public void Start()
 		{
-			Instance.EnsureLevels(false);
-			Instance.ChangeLevel(Instance._levels.First());
+			EnsureLevels(false);
+			GameEvents.NewGameStarted.Subscribe(OnNewGameStarted);
+			GameEvents.GameOver.Subscribe(OnGameOver);
+			GameEvents.ScoreAdded.Subscribe(OnScoreAdded);
+		}
+
+		private void OnNewGameStarted(GameEventArgs gameEventArgs)
+		{
+			ChangeLevel(_levels.First());
+		}
+
+		private void OnGameOver(GameEventArgs gameEventArgs)
+		{
+			CurrentLevel.Behaviour.Stop();
+			CurrentLevel = null;
 		}
 
 		private void EnsureLevels(bool isRandom)
@@ -48,16 +61,17 @@ namespace Assets.Scripts.Levels
 				_levels = new List<Level>();
 				LevelBehaviour[] behaviours = new LevelBehaviour[]
 					{
-						//RunAwayBehaviour.Instance,
-						WiggleBehaviour.Instance,
-						DayNightBehaviour.Instance,
-						MolesBehaviour.Instance,
-						TurnBehaviour.Instance,
-						VirusesBehaviour.Instance,
 						LightsBehaviour.Instance,
+						WiggleBehaviour.Instance,
 						SnakeBahaviour.Instance,
-						QuestionsBehaviour.Instance,
-						RotationBehaviour.Instance
+						TurnBehaviour.Instance,
+						RotationBehaviour.Instance,
+						VirusesBehaviour.Instance,
+						DayNightBehaviour.Instance,
+						MolesBehaviour.Instance,					
+						QuestionsBehaviour.Instance
+						
+						//RunAwayBehaviour.Instance,
 					};
 
 				if (isRandom)
@@ -75,7 +89,7 @@ namespace Assets.Scripts.Levels
 					{
 						Number = 2,
 						Title = "Level 2",
-						Points = 250,
+						Points = 300,
 						Behaviour = behaviours[0]
 					});
 				_levels.Add(new Level
@@ -168,9 +182,7 @@ namespace Assets.Scripts.Levels
 				}
 				else
 				{
-					height += PixelsPerLevel * score / level.Points;
-					if (level != CurrentLevel)
-						ChangeLevel(level);
+					height += PixelsPerLevel*score/level.Points;
 					break;
 				}
 			}
@@ -179,6 +191,23 @@ namespace Assets.Scripts.Levels
 		}
 
 		#endregion
+
+		private void OnScoreAdded(GameEventArgs gameEventArgs)
+		{
+			int score = ScoreManager.Instance.Score;
+			foreach (Level level in _levels)
+			{
+				score -= level.Points;
+				if (score <= 0)
+				{
+					if (level != CurrentLevel)
+						ChangeLevel(level);
+					return;
+				}
+			}
+			GameEvents.GameWin.Publish(GameEventArgs.Empty);
+			OnGameOver(GameEventArgs.Empty);
+		}
 
 		private void ChangeLevel(Level level)
 		{
@@ -191,7 +220,7 @@ namespace Assets.Scripts.Levels
 			if (level.Number > 1)
 			{
 				AudioManager.Play(Sound.NextLevel);
-				GameEvents.NextLevel.Publish(new GameEventArgs());
+				GameEvents.NextLevel.Publish(new GameEventArgs<Level>(level));
 			}
 		}
 

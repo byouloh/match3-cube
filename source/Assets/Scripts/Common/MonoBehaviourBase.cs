@@ -7,7 +7,12 @@ namespace Assets.Scripts.Common
 		private Transform _transform;
 		public Transform Transform
 		{
-			get { return _transform ?? (_transform = transform); }
+			get
+			{
+				if (_transform == null)
+					_transform = transform;
+				return _transform;
+			}
 		}
 
 		protected T Instantiate<T>(Object obj) where T : Object

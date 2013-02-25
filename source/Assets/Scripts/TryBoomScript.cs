@@ -7,7 +7,6 @@ namespace Assets.Scripts
 	{
 		private const float BUTTON_WIDTH = 80;
 
-		private GameObject _gameObject;
 		private bool _isDeadEnd;
 		private float _deadEndStartTime;
 		private bool _isHintShowing;
@@ -16,15 +15,13 @@ namespace Assets.Scripts
 		public int HintsOnStart;
 		public int RemainHints;
 		public float NoDefaultHintPeriod;//in seconds
+		public GameObject TryBoomButton;
 
 		public static TryBoomScript Instance { get; private set; }
 
 		public void Awake()
 		{
 			Instance = this;
-
-			_gameObject = new GameObject();
-			_gameObject.transform.position = new Vector3(Screen.width / 2 - BUTTON_WIDTH / 2, 40);
 		}
 
 		public void Start()
@@ -65,19 +62,15 @@ namespace Assets.Scripts
 		private void ShowHint()
 		{
 			_isHintShowing = true;
-			iTween.ShakePosition(_gameObject, new Vector3(5, 5), 100);
+			iTween.ShakePosition(TryBoomButton, new Vector3(0.01f, 0.01f), 100);
 		}
 
-		public void OnGUI()
+		public void TryBoom()
 		{
-			if (GUI.Button(
-				new Rect(_gameObject.transform.position.x, _gameObject.transform.position.y, BUTTON_WIDTH, 25), "Try BOOM!"))
-			{
-				if (FieldManager.Instance.HasAvailableMoves())
-					FailBoom();
-				else
-					Boom();
-			}
+			if (FieldManager.Instance.HasAvailableMoves())
+				FailBoom();
+			else
+				Boom();
 		}
 
 		private void FailBoom()
@@ -92,7 +85,7 @@ namespace Assets.Scripts
 			FieldManager.Instance.ClearTopLair();
 			_isDeadEnd = false;
 			_isHintShowing = false;
-			iTween.Stop(_gameObject);
+			iTween.Stop(TryBoomButton);
 		}
 
 		public void Reset()
@@ -100,7 +93,7 @@ namespace Assets.Scripts
 			RemainHints = HintsOnStart;
 			_isDeadEnd = false;
 			_isHintShowing = false;
-			iTween.Stop(_gameObject);
+			iTween.Stop(TryBoomButton);
 		}
 	}
 }

@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Assets.Scripts.Common;
+using Assets.Scripts.Events;
 using UnityEngine;
 
 namespace Assets.Scripts.Levels
@@ -23,6 +25,11 @@ namespace Assets.Scripts.Levels
 			Instance = this;
 		}
 	
+		public void Start()
+		{
+			GameEvents.CubeRemoved.Subscribe(OnCubeRemoved);
+		}
+
 		public void Update ()
 		{
 			if (IsActive)
@@ -65,5 +72,21 @@ namespace Assets.Scripts.Levels
 		{
 			return _viruses.Any(v => v.Position.Equals(position));
 		}
+
+		private void OnCubeRemoved(PositionEventArgs positionEventArgs)
+		{
+			if (IsActive)
+			{
+				List<VirusItem> removedViruses = _viruses.Where(v => v.Position.Equals(positionEventArgs.Position)).ToList();
+				foreach (VirusItem virus in removedViruses)
+				{
+					_viruses.Remove(virus);
+					Destroy(virus.gameObject);
+					AudioManager.Play(Sound.VirusGone);
+					GameEvents.VirusGone.Publish(GameEventArgs.Empty);
+				}
+			}
+		}
+
 	}
 }

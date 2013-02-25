@@ -4,6 +4,8 @@ namespace Assets.Scripts
 {
 	public class CubeItem : MonoBehaviour
 	{
+		private static bool _isLocked;
+
 		public int X;
 		public int Y;
 		public int Z;
@@ -30,8 +32,21 @@ namespace Assets.Scripts
 
 		public void OnMouseDown()
 		{
-			AudioManager.Play(Sound.Click);
-			FieldManager.Instance.OnCubeSelect(this);
+			if (!_isLocked)
+			{
+				AudioManager.Play(Sound.Click);
+				FieldManager.Instance.OnCubeSelect(this);
+			}
+		}
+
+		public static void Lock()
+		{
+			_isLocked = true;
+		}
+
+		public static void UnLock()
+		{
+			_isLocked = false;
 		}
 
 		public void OnMouseOver()

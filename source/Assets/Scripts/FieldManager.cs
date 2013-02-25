@@ -49,6 +49,8 @@ namespace Assets.Scripts
 
 		public void Start()
 		{
+			GameEvents.SnakeMoved.Subscribe(OnSnakeMoved);
+			GameEvents.StartNewGame.Subscribe(OnStartNewGame);
 			Random.seed = (int)(Time.realtimeSinceStartup * 1000000);
 			StartGame();
 		}
@@ -62,18 +64,22 @@ namespace Assets.Scripts
 			}
 		}
 
-		public void StartGame()
+		private void OnStartNewGame(GameEventArgs gameEventArgs)
+		{
+			StartGame();
+		}
+
+		private void StartGame()
 		{
 			_firstSelectedCube = null;
 			_secondSelectedCube = null;
 			ClearField();
 			BuildField();
-			LevelsManager.Reset();
 			ScoreManager.Reset();
 			TimerManager.Reset();
 			TryBoomScript.Instance.Reset();
 			CheckOnMatches();
-			GameEvents.NewGameStarted.Publish(new GameEventArgs());
+			GameEvents.NewGameStarted.Publish(GameEventArgs.Empty);
 		}
 
 		#region Build functions
@@ -167,7 +173,7 @@ namespace Assets.Scripts
 		{
 			if (VirusesBehaviour.Instance.IsCubeInfected(new Position(cube.X, cube.Y)))
 			{
-				TimerManager.Instance.AddPenaltySeconds(-5);
+				TimerManager.Instance.AddPenaltySeconds(5);
 				return false;
 			}
 
@@ -179,7 +185,7 @@ namespace Assets.Scripts
 
 			if (cube.IsMole)
 			{
-				TimerManager.Instance.AddPenaltySeconds(-5);
+				TimerManager.Instance.AddPenaltySeconds(5);
 				return false;
 			}
 
@@ -224,6 +230,16 @@ namespace Assets.Scripts
 			_secondSelectedCube = null;
 		}
 
+		private void OnSnakeMoved(PositionEventArgs positionEventArgs)
+		{
+			if (_firstSelectedCube != null &&
+			    _firstSelectedCube.X == positionEventArgs.Position.X && _firstSelectedCube.Y == positionEventArgs.Position.Y)
+			{
+				MarkUnSelected(_firstSelectedCube);
+				_firstSelectedCube = null;
+			}
+		}
+
 		#endregion
 
 		#region Swap and Matches
@@ -250,6 +266,7 @@ namespace Assets.Scripts
 		private void RemoveCube(int x, int y)
 		{
 			RemoveCube(x, y, 0);
+			GameEvents.CubeRemoved.Publish(new PositionEventArgs(new Position(x, y)));
 		}
 
 		private void RemoveCube(int x, int y, int z)
@@ -265,24 +282,28 @@ namespace Assets.Scripts
 			Destroy(cube, 2);
 
 			_field[x, y, z] = null;
-			GameEvents.StateChanged.Publish(new GameEventArgs());
+			GameEvents.StateChanged.Publish(GameEventArgs.Empty);
 		}
 
 		private void FailSwap(CubeItem cube1, CubeItem cube2)
 		{
-			iTween.MoveTo(cube1.gameObject, cube2.transform.position, 0.2f);
-			iTween.MoveTo(cube1.gameObject,
-						  iTween.Hash(iT.MoveTo.position, cube1.transform.position,
-									  iT.MoveTo.delay, 0.2f,
-									  iT.MoveTo.time, 0.2f,
-									  iT.ShakePosition.oncomplete, "UpdatePosition"));
+			iTween.Stop(cube1.gameObject);
+			Vector3 amount1 = cube2.transform.localPosition - cube1.transform.localPosition;
+			iTween.MoveBy(cube1.gameObject, amount1, 0.2f);
+			iTween.MoveBy(cube1.gameObject,
+			              iTween.Hash(iT.MoveBy.amount, -amount1,
+			                          iT.MoveBy.delay, 0.2f,
+			                          iT.MoveBy.time, 0.2f,
+			                          iT.MoveBy.oncomplete, "UpdatePosition"));
 
-			iTween.MoveTo(cube2.gameObject, cube1.transform.position, 0.2f);
-			iTween.MoveTo(cube2.gameObject,
-						  iTween.Hash(iT.MoveTo.position, cube2.transform.position,
-									  iT.MoveTo.delay, 0.2f,
-									  iT.MoveTo.time, 0.2f,
-									  iT.ShakePosition.oncomplete, "UpdatePosition"));
+			iTween.Stop(cube2.gameObject);
+			Vector3 amount2 = cube1.transform.localPosition - cube2.transform.localPosition;
+			iTween.MoveBy(cube2.gameObject, amount2, 0.2f);
+			iTween.MoveBy(cube2.gameObject,
+			              iTween.Hash(iT.MoveBy.amount, -amount2,
+			                          iT.MoveBy.delay, 0.2f,
+			                          iT.MoveBy.time, 0.2f,
+			                          iT.MoveBy.oncomplete, "UpdatePosition"));
 		}
 
 		public IEnumerator Swap(CubeItem cube1, CubeItem cube2)
@@ -292,16 +313,16 @@ namespace Assets.Scripts
 			CubeItem.SwapPosition(cube1, cube2);
 
 			iTween.Stop(cube1.gameObject);
-			iTween.MoveTo(cube1.gameObject,
-						  iTween.Hash(iT.MoveTo.position, cube2.transform.position,
-									  iT.MoveTo.time, 0.5f,
-									  iT.MoveTo.oncomplete, "UpdatePosition"));
+			iTween.MoveBy(cube1.gameObject,
+						  iTween.Hash(iT.MoveBy.amount, cube2.transform.localPosition - cube1.transform.localPosition,
+			                          iT.MoveBy.time, 0.5f,
+			                          iT.MoveBy.oncomplete, "UpdatePosition"));
 
 			iTween.Stop(cube2.gameObject);
-			iTween.MoveTo(cube2.gameObject,
-						  iTween.Hash(iT.MoveTo.position, cube1.transform.position,
-									  iT.MoveTo.time, 0.5f,
-									  iT.MoveTo.oncomplete, "UpdatePosition"));
+			iTween.MoveBy(cube2.gameObject,
+						  iTween.Hash(iT.MoveBy.amount, cube1.transform.localPosition - cube2.transform.localPosition,
+			                          iT.MoveBy.time, 0.5f,
+			                          iT.MoveBy.oncomplete, "UpdatePosition"));
 
 			yield return new WaitForSeconds(0.3f);
 			CheckOnMatches();
@@ -330,12 +351,10 @@ namespace Assets.Scripts
 				_field[x, y, z - 1] = _field[x, y, z];
 				CubeItem cube = _field[x, y, z - 1];
 				cube.SetPosition(x, y, z - 1);
-				iTween.MoveTo(cube.gameObject,
-							  iTween.Hash(iT.MoveTo.position,
-										  new Vector3(cube.transform.position.x, cube.transform.position.y,
-													  cube.transform.position.z - CubeArea),
-										  iT.MoveTo.time, 0.5f,
-										  iT.MoveTo.oncomplete, "UpdatePosition"));
+				iTween.MoveBy(cube.gameObject,
+				              iTween.Hash(iT.MoveBy.amount, new Vector3(0, 0, -CubeArea),
+				                          iT.MoveBy.time, 0.5f,
+				                          iT.MoveBy.oncomplete, "UpdatePosition"));
 			}
 			GameEvents.ColumnMovedUp.Publish(new PositionEventArgs(new Position(x, y)));
 		}
@@ -470,7 +489,7 @@ namespace Assets.Scripts
 					_field[x, y, 1].IsQuestionBlocked = true;
 				}
 			StartCoroutine(CompleteCube());
-			GameEvents.TopLairCleared.Publish(new GameEventArgs());
+			GameEvents.TopLairCleared.Publish(GameEventArgs.Empty);
 		}
 
 		public void ShowAvailableMove(float duration)
@@ -530,5 +549,11 @@ namespace Assets.Scripts
 					for (int z = 0; z < Z; z++)
 						_field[x, y, z].UpdatePosition();
 		}
+
+		public bool Contains(Position position)
+		{
+			return position.X >= 0 && position.X < X && position.Y >= 0 && position.Y < Y;
+		}
+
 	}
 }

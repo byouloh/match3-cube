@@ -1,4 +1,3 @@
-using System;
 using Assets.Scripts.Events;
 using Assets.Scripts.ToastManagement;
 using UnityEngine;
@@ -25,6 +24,8 @@ namespace Assets.Scripts
 		public int NextLevelBonusTime;
 
 		public static TimerManager Instance { get; private set; }
+
+		public int RemainSeconds { get; private set; }
 
 		public void Awake()
 		{
@@ -92,30 +93,28 @@ namespace Assets.Scripts
 			AudioManager.Play(Sound.Fail);
 		}
 
-		public void OnGUI()
+		public void Update()
 		{
-			int remainSeconds = Mathf.Clamp(SecondsOnStart + _bonusSeconds - _penaltySeconds - (int) (Time.time - _startTime),
+			RemainSeconds = Mathf.Clamp(SecondsOnStart + _bonusSeconds - _penaltySeconds - (int) (Time.time - _startTime),
 			                                0, int.MaxValue);
-		
-			if (remainSeconds == 0 && !_isOver)
+
+			if (RemainSeconds == 0 && !_isOver)
 			{
 				_isOver = true;
-				GUIGameOver.Show();
+				GameEvents.GameOver.Publish(GameEventArgs.Empty);
 			}
 
-			if (remainSeconds > 0 && remainSeconds <= SecondsNearToOver && !_isNearToOver)
+			if (RemainSeconds > 0 && RemainSeconds <= SecondsNearToOver && !_isNearToOver)
 			{
 				_isNearToOver = true;
 				AudioManager.Play(Sound.Clock);
 			}
 
-			if ((remainSeconds == 0 || remainSeconds > SecondsNearToOver) && _isNearToOver)
+			if ((RemainSeconds == 0 || RemainSeconds > SecondsNearToOver) && _isNearToOver)
 			{
 				_isNearToOver = false;
 				AudioManager.Stop(Sound.Clock);
 			}
-
-			GUI.Label(new Rect(0, 50, 100, 50), string.Format("Time:{0}", remainSeconds));
 		}
 
 		public static void Reset()

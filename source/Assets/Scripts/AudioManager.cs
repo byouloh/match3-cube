@@ -24,14 +24,14 @@ namespace Assets.Scripts
 		public void Awake()
 		{
 			_instance = this;
-			_appPrefs = new AppPrefs();
-			_appPrefs.Load();
-			_isMusicDisable = _appPrefs.IsMusicDisable;
-			_isSoundDisable = _appPrefs.IsSoundDisable;
 		}
 
 		public void Start()
 		{
+			_appPrefs = AppPrefs.Instance;
+			_isMusicDisable = _appPrefs.IsMusicDisable;
+			_isSoundDisable = _appPrefs.IsSoundDisable;
+
 			if (!_isMusicDisable)
 				MusicAudioSource.Play();
 		}
@@ -63,6 +63,9 @@ namespace Assets.Scripts
 					break;
 				case Sound.Turn:
 					audio.PlayOneShot(Turn);
+					break;
+				case Sound.VirusGone:
+					audio.PlayOneShot(Click); //todo: change
 					break;
 				default:
 					throw new NotSupportedException(sound.ToString());

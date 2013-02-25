@@ -56,5 +56,19 @@ namespace Assets.Scripts.Common
 		{
 			return DX == other.DX && DY == other.DY;
 		}
+
+		public override string ToString()
+		{
+			if (this == Up)
+				return "Up";
+			else if (this == Down)
+				return "Down";
+			else if (this == Left)
+				return "Left";
+			else if (this == Right)
+				return "Right";
+
+			throw new NotSupportedException();
+		}
 	}
 }
