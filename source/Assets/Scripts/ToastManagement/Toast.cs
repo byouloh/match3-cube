@@ -1,79 +1,73 @@
-﻿using UnityEngine;
+﻿using Assets.Scripts.Common;
+using UnityEngine;
 
 namespace Assets.Scripts.ToastManagement
 {
 	public class Toast
 	{
-		private readonly float _startTime;
-		private readonly ToastStyle _style;
-		private readonly string _message;
-		private readonly Vector2 _startPosition;
-		private int? _fontOriginalSize;
+		
+		private readonly TimeEvent _finishTime;
+		private readonly Vector2 _startLocalPosition;
+		private readonly Vector2 _startLocalScale;
 
-
-		public string Category { get; private set; }
+		public ToastStyle Style { get; private set; }
+		public UILabel Label { get; private set; }
 		public bool IsActive { get; private set; }
-		
-		public Toast(string message, Vector2 position, ToastStyle toastStyle, string category)
+
+		private readonly Vector2 _startPosition;
+	
+		public Toast(UILabel label, ToastStyle style)
 		{
-			_startTime = Time.time;
-			_style = toastStyle;
-			_message = message;
-			_startPosition = position;
-			Category = category;
+			Style = style;
+			_finishTime = new TimeEvent(Style.Duration);
+			Label = label;
 			IsActive = true;
+			_startLocalPosition = Label.transform.localPosition;
+			_startLocalScale = Label.transform.localScale;
 		}
 
-		public void OnGUI()
+		public void Update()
 		{
-			float lifeTime = Time.time - _startTime;
-			float lifeTimePercent = Mathf.Clamp(lifeTime * 100 / _style.Duration, 0, 100);
-			
-			float width = 200;
-			float height = 40;
-
-			float yOffset = OnBubble(lifeTime);
-			OnTransparency(lifeTimePercent);
-			OnOncoming(lifeTimePercent);
-
-			GUI.Label(new Rect(_startPosition.x - width/2, _startPosition.y - height/2 + yOffset, width, height),
-			          _message, _style.GUIStyle);
-			IsActive = lifeTime <= _style.Duration;
-		
-		}
-
-		private float OnBubble(float lifeTime)
-		{
-			if ((_style.Effect & Effect.Bubble) == Effect.Bubble)
+			if (IsActive)
 			{
-				return -lifeTime * _style.BubbleSpeed;
-			}
-			return 0;
-		}
-
-		private void OnTransparency(float lifeTimePercent)
-		{
-			if ((_style.Effect & Effect.Transparency) == Effect.Transparency)
-			{
-				float alpha = Mathf.Lerp(1, 0, lifeTimePercent / 100);
-				_style.GUIStyle.normal.textColor = new Color(
-					_style.GUIStyle.normal.textColor.r,
-					_style.GUIStyle.normal.textColor.g,
-					_style.GUIStyle.normal.textColor.b,
-					alpha);
+				OnTransparency();
+				OnBubble();
+				OnOncoming();
+				IsActive = !_finishTime.PopIsOccurred();
 			}
 		}
 
-		private void OnOncoming(float lifeTimePercent)
+		private void OnTransparency()
 		{
-			if ((_style.Effect & Effect.Oncoming) == Effect.Oncoming)
+			if ((Style.Effect & Effect.Transparency) == Effect.Transparency)
 			{
-				if (_fontOriginalSize == null)
-					_fontOriginalSize = _style.GUIStyle.fontSize;
-
-				int fontSize = (int) Mathf.Lerp(1, _fontOriginalSize.Value, lifeTimePercent/100);
-				_style.GUIStyle.fontSize = fontSize;
+				float alpha = Mathf.Lerp(1, 0, _finishTime.LifeTimePercent / 100);
+				Label.color = new Color(Label.color.r, Label.color.g, Label.color.b, alpha);
 			}
+		}
+
+		private void OnBubble()
+		{
+			if ((Style.Effect & Effect.Bubble) == Effect.Bubble)
+			{
+				float yOffset = _finishTime.LifeTime * Style.BubbleSpeed;
+				Label.cachedTransform.localPosition = new Vector3(_startLocalPosition.x, _startLocalPosition.y + yOffset);
+			}
+		}
+
+		private void OnOncoming()
+		{
+			if ((Style.Effect & Effect.Oncoming) == Effect.Oncoming)
+			{
+				float xScale = _startLocalScale.x*_finishTime.LifeTimePercent/100f;
+				float yScale = _startLocalScale.y*_finishTime.LifeTimePercent/100f;
+				Label.transform.localScale = new Vector3(xScale, yScale);
+			}
+		}
+
+		public override string ToString()
+		{
+			return Label.text;
 		}
 
 	}

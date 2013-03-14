@@ -1,4 +1,4 @@
-﻿//----------------------------------------------
+//----------------------------------------------
 //            NGUI: Next-Gen UI kit
 // Copyright © 2011-2012 Tasharen Entertainment
 //----------------------------------------------
@@ -60,6 +60,7 @@ public class UICamera : MonoBehaviour
 
 		public ClickNotification clickNotification = ClickNotification.Always;
 		public bool touchBegan = true;
+		public bool pressStarted = false;
 		public bool dragStarted = false;
 	}
 
@@ -68,6 +69,12 @@ public class UICamera : MonoBehaviour
 		public GameObject go;
 		public int counter = 0;
 	}
+
+	/// <summary>
+	/// If 'true', currently hovered object will be shown in the top left corner.
+	/// </summary>
+
+	public bool debug = false;
 
 	/// <summary>
 	/// Whether the mouse input is used.
@@ -98,6 +105,15 @@ public class UICamera : MonoBehaviour
 	/// </summary>
 
 	public bool useController = true;
+
+	/// <summary>
+	/// If 'true', once a press event is started on some object, that object will be the only one that will be
+	/// receiving future events until the press event is finally released, regardless of where that happens.
+	/// If 'false', the press event won't be locked to the original object, and other objects will be receiving
+	/// OnPress(true) and OnPress(false) events as the touch enters and leaves their area.
+	/// </summary>
+
+	public bool stickyPress = true;
 
 	/// <summary>
 	/// Which layers will receive events.
@@ -180,6 +196,15 @@ public class UICamera : MonoBehaviour
 	public KeyCode submitKey1 = KeyCode.JoystickButton0;
 	public KeyCode cancelKey0 = KeyCode.Escape;
 	public KeyCode cancelKey1 = KeyCode.JoystickButton1;
+
+	public delegate void OnCustomInput ();
+
+	/// <summary>
+	/// Custom input processing logic, if desired. For example: WP7 touches.
+	/// Use UICamera.current to get the current camera.
+	/// </summary>
+
+	static public OnCustomInput onCustomInput;
 
 	/// <summary>
 	/// Whether tooltips will be shown or not.
@@ -264,7 +289,7 @@ public class UICamera : MonoBehaviour
 	static float mNextEvent = 0f;
 
 	// List of currently active touches
-	Dictionary<int, MouseOrTouch> mTouches = new Dictionary<int, MouseOrTouch>();
+	static Dictionary<int, MouseOrTouch> mTouches = new Dictionary<int, MouseOrTouch>();
 
 	// Tooltip widget (mouse only)
 	GameObject mTooltip = null;
@@ -288,10 +313,10 @@ public class UICamera : MonoBehaviour
 	public Camera cachedCamera { get { if (mCam == null) mCam = camera; return mCam; } }
 
 	/// <summary>
-	/// The object the mouse is hovering over.
+	/// The object hit by the last Raycast that was the result of a mouse or touch event.
 	/// </summary>
 
-	static public GameObject hoveredObject { get { return mMouse[0].current; } }
+	static public GameObject hoveredObject;
 
 	/// <summary>
 	/// Option to manually set the selected game object.
@@ -337,6 +362,31 @@ public class UICamera : MonoBehaviour
 					}
 				}
 			}
+		}
+	}
+
+	/// <summary>
+	/// Number of active touches from all sources.
+	/// </summary>
+
+	static public int touchCount
+	{
+		get
+		{
+			int count = 0;
+
+			for (int i = 0; i < mMouse.Length; ++i)
+				if (mMouse[i].pressed != null)
+					++count;
+
+			if (mController.pressed != null)
+				++count;
+
+			for (int i = 0; i < mTouches.Count; ++i)
+				if (mTouches[i].pressed != null)
+					++count;
+
+			return count;
 		}
 	}
 
@@ -393,7 +443,7 @@ public class UICamera : MonoBehaviour
 	/// Returns the object under the specified position.
 	/// </summary>
 
-	static bool Raycast (Vector3 inPos, ref RaycastHit hit)
+	static public bool Raycast (Vector3 inPos, ref RaycastHit hit)
 	{
 		for (int i = 0; i < mList.Count; ++i)
 		{
@@ -433,13 +483,13 @@ public class UICamera : MonoBehaviour
 							return true;
 						}
 					}
-					return false;
 				}
 				else if (hits.Length == 1 && IsVisible(ref hits[0]))
 				{
 					hit = hits[0];
 					return true;
 				}
+				continue;
 			}
 			if (Physics.Raycast(ray, out hit, dist, mask)) return true;
 		}
@@ -454,7 +504,7 @@ public class UICamera : MonoBehaviour
 	{
 		UIPanel panel = NGUITools.FindInParents<UIPanel>(hit.collider.gameObject);
 
-		if (panel == null || panel.clipping == UIDrawCall.Clipping.None || panel.IsVisible(hit.point))
+		if (panel == null || panel.IsVisible(hit.point))
 		{
 			return true;
 		}
@@ -587,7 +637,7 @@ public class UICamera : MonoBehaviour
 	/// Generic notification function. Used in place of SendMessage to shorten the code and allow for more than one receiver.
 	/// </summary>
 
-	static void Notify (GameObject go, string funcName, object obj)
+	static public void Notify (GameObject go, string funcName, object obj)
 	{
 		if (go != null)
 		{
@@ -604,7 +654,7 @@ public class UICamera : MonoBehaviour
 	/// Get or create a touch event.
 	/// </summary>
 
-	MouseOrTouch GetTouch (int id)
+	static public MouseOrTouch GetTouch (int id)
 	{
 		MouseOrTouch touch;
 
@@ -621,7 +671,7 @@ public class UICamera : MonoBehaviour
 	/// Remove a touch event from the list.
 	/// </summary>
 
-	void RemoveTouch (int id) { mTouches.Remove(id); }
+	static public void RemoveTouch (int id) { mTouches.Remove(id); }
 
 	/// <summary>
 	/// Add this camera to the list.
@@ -629,13 +679,22 @@ public class UICamera : MonoBehaviour
 
 	void Awake ()
 	{
+#if !UNITY_3_4 && !UNITY_3_5 && !UNITY_4_0
+		// We don't want the camera to send out any kind of mouse events
+		cachedCamera.eventMask = 0;
+#endif
+
 		if (Application.platform == RuntimePlatform.Android ||
 			Application.platform == RuntimePlatform.IPhonePlayer)
 		{
 			useMouse = false;
 			useTouch = true;
-			useKeyboard = false;
-			useController = false;
+
+			if (Application.platform == RuntimePlatform.IPhonePlayer)
+			{
+				useKeyboard = false;
+				useController = false;
+			}
 		}
 		else if (Application.platform == RuntimePlatform.PS3 ||
 				 Application.platform == RuntimePlatform.XBOX360)
@@ -661,7 +720,7 @@ public class UICamera : MonoBehaviour
 		mList.Sort(CompareFunc);
 
 		// If no event receiver mask was specified, use the camera's mask
-		if (eventReceiverMask == -1) eventReceiverMask = camera.cullingMask;
+		if (eventReceiverMask == -1) eventReceiverMask = cachedCamera.cullingMask;
 	}
 
 	/// <summary>
@@ -681,9 +740,9 @@ public class UICamera : MonoBehaviour
 	{
 		if (useMouse && Application.isPlaying && handlesEvents)
 		{
-			GameObject go = Raycast(Input.mousePosition, ref lastHit) ? lastHit.collider.gameObject : fallThrough;
-			if (go == null) go = genericEventHandler;
-			for (int i = 0; i < 3; ++i) mMouse[i].current = go;
+			hoveredObject = Raycast(Input.mousePosition, ref lastHit) ? lastHit.collider.gameObject : fallThrough;
+			if (hoveredObject == null) hoveredObject = genericEventHandler;
+			for (int i = 0; i < 3; ++i) mMouse[i].current = hoveredObject;
 		}
 	}
 
@@ -704,6 +763,9 @@ public class UICamera : MonoBehaviour
 		// Process touch input
 		if (useTouch) ProcessTouches();
 
+		// Custom input processing
+		if (onCustomInput != null) onCustomInput();
+
 		// Clear the selection on the cancel key, but only if mouse input is allowed
 		if (useMouse && mSel != null && ((cancelKey0 != KeyCode.None && Input.GetKeyDown(cancelKey0)) ||
 			(cancelKey1 != KeyCode.None && Input.GetKeyDown(cancelKey1)))) selectedObject = null;
@@ -721,11 +783,11 @@ public class UICamera : MonoBehaviour
 				if (!stickyTooltip && mTooltip != null) ShowTooltip(false);
 				Notify(mSel, "OnInput", input);
 			}
-
-			// Update the keyboard and joystick events
-			ProcessOthers();
 		}
 		else inputHasFocus = false;
+
+		// Update the keyboard and joystick events
+		if (mSel != null) ProcessOthers();
 
 		// If it's time to show a tooltip, inform the object we're hovering over
 		if (useMouse && mHover != null)
@@ -747,7 +809,7 @@ public class UICamera : MonoBehaviour
 	/// Update mouse input.
 	/// </summary>
 
-	void ProcessMouse ()
+	public void ProcessMouse ()
 	{
 		bool updateRaycast = (useMouse && Time.timeScale < 0.9f);
 
@@ -773,9 +835,9 @@ public class UICamera : MonoBehaviour
 		// Update the object under the mouse
 		if (updateRaycast)
 		{
-			GameObject go = Raycast(Input.mousePosition, ref lastHit) ? lastHit.collider.gameObject : fallThrough;
-			if (go == null) go = genericEventHandler;
-			mMouse[0].current = go;
+			hoveredObject = Raycast(Input.mousePosition, ref lastHit) ? lastHit.collider.gameObject : fallThrough;
+			if (hoveredObject == null) hoveredObject = genericEventHandler;
+			mMouse[0].current = hoveredObject;
 		}
 
 		// Propagate the updates to the other mouse buttons
@@ -859,47 +921,51 @@ public class UICamera : MonoBehaviour
 	/// Update touch-based events.
 	/// </summary>
 
-	void ProcessTouches ()
+	public void ProcessTouches ()
 	{
 		for (int i = 0; i < Input.touchCount; ++i)
 		{
 			Touch input = Input.GetTouch(i);
 
-			if (allowMultiTouch || input.fingerId == 0)
+			currentTouchID = allowMultiTouch ? input.fingerId : 1;
+			currentTouch = GetTouch(currentTouchID);
+
+			bool pressed = (input.phase == TouchPhase.Began) || currentTouch.touchBegan;
+			bool unpressed = (input.phase == TouchPhase.Canceled) || (input.phase == TouchPhase.Ended);
+			currentTouch.touchBegan = false;
+
+			if (pressed)
 			{
-				currentTouchID = allowMultiTouch ? input.fingerId : 1;
-				currentTouch = GetTouch(currentTouchID);
-
-				bool pressed = (input.phase == TouchPhase.Began) || currentTouch.touchBegan;
-				bool unpressed = (input.phase == TouchPhase.Canceled) || (input.phase == TouchPhase.Ended);
-				currentTouch.touchBegan = false;
-
-				if (pressed)
-				{
-					currentTouch.delta = Vector2.zero;
-				}
-				else
-				{
-					// Although input.deltaPosition can be used, calculating it manually is safer (just in case)
-					currentTouch.delta = input.position - currentTouch.pos;
-				}
-
-				currentTouch.pos = input.position;
-				currentTouch.current = Raycast(currentTouch.pos, ref lastHit) ? lastHit.collider.gameObject : fallThrough;
-				if (currentTouch.current == null) currentTouch.current = genericEventHandler;
-				lastTouchPosition = currentTouch.pos;
-
-				// We don't want to update the last camera while there is a touch happening
-				if (pressed) currentTouch.pressedCam = currentCamera;
-				else if (currentTouch.pressed != null) currentCamera = currentTouch.pressedCam;
-
-				// Process the events from this touch
-				ProcessTouch(pressed, unpressed);
-
-				// If the touch has ended, remove it from the list
-				if (unpressed) RemoveTouch(currentTouchID);
-				currentTouch = null;
+				currentTouch.delta = Vector2.zero;
 			}
+			else
+			{
+				// Although input.deltaPosition can be used, calculating it manually is safer (just in case)
+				currentTouch.delta = input.position - currentTouch.pos;
+			}
+
+			currentTouch.pos = input.position;
+			hoveredObject = Raycast(currentTouch.pos, ref lastHit) ? lastHit.collider.gameObject : fallThrough;
+			if (hoveredObject == null) hoveredObject = genericEventHandler;
+			currentTouch.current = hoveredObject;
+			lastTouchPosition = currentTouch.pos;
+
+			// We don't want to update the last camera while there is a touch happening
+			if (pressed) currentTouch.pressedCam = currentCamera;
+			else if (currentTouch.pressed != null) currentCamera = currentTouch.pressedCam;
+
+			// Double-tap support
+			if (input.tapCount > 1) currentTouch.clickTime = Time.realtimeSinceStartup;
+
+			// Process the events from this touch
+			ProcessTouch(pressed, unpressed);
+
+			// If the touch has ended, remove it from the list
+			if (unpressed) RemoveTouch(currentTouchID);
+			currentTouch = null;
+
+			// Don't consider other touches
+			if (!allowMultiTouch) break;
 		}
 	}
 
@@ -907,7 +973,7 @@ public class UICamera : MonoBehaviour
 	/// Process keyboard and joystick events.
 	/// </summary>
 
-	void ProcessOthers ()
+	public void ProcessOthers ()
 	{
 		currentTouchID = -100;
 		currentTouch = mController;
@@ -922,6 +988,7 @@ public class UICamera : MonoBehaviour
 		{
 			currentTouch.current = mSel;
 			ProcessTouch(submitKeyDown, submitKeyUp);
+			currentTouch.current = null;
 		}
 
 		int vertical = 0;
@@ -963,7 +1030,7 @@ public class UICamera : MonoBehaviour
 	/// Process the events of the specified touch.
 	/// </summary>
 
-	void ProcessTouch (bool pressed, bool unpressed)
+	public void ProcessTouch (bool pressed, bool unpressed)
 	{
 		// Whether we're using the mouse
 		bool isMouse = (currentTouch == mMouse[0]);
@@ -974,6 +1041,9 @@ public class UICamera : MonoBehaviour
 		if (pressed)
 		{
 			if (mTooltip != null) ShowTooltip(false);
+			
+			currentTouch.pressStarted = true;
+			Notify(currentTouch.pressed, "OnPress", false);
 			currentTouch.pressed = currentTouch.current;
 			currentTouch.clickNotification = ClickNotification.Always;
 			currentTouch.totalDelta = Vector2.zero;
@@ -987,40 +1057,52 @@ public class UICamera : MonoBehaviour
 				selectedObject = null;
 			}
 		}
-		else if (currentTouch.pressed != null)
+		else
 		{
-			float mag = currentTouch.delta.magnitude;
-
-			if (mag != 0f)
+			// If the user is pressing down and has dragged the touch away from the original object,
+			// unpress the original object and notify the new object that it is now being pressed on.
+			if (!stickyPress && !unpressed && currentTouch.pressStarted && currentTouch.pressed != hoveredObject)
 			{
-				// Keep track of the total movement
-				currentTouch.totalDelta += currentTouch.delta;
-				mag = currentTouch.totalDelta.magnitude;
+				Notify(currentTouch.pressed, "OnPress", false);
+				currentTouch.pressed = hoveredObject;
+				Notify(currentTouch.pressed, "OnPress", true);
+			}
 
-				// If the drag event has not yet started, see if we've dragged the touch far enough to start it
-				if (!currentTouch.dragStarted && drag < mag)
+			if (currentTouch.pressed != null)
+			{
+				float mag = currentTouch.delta.magnitude;
+
+				if (mag != 0f)
 				{
-					currentTouch.dragStarted = true;
-					currentTouch.delta = currentTouch.totalDelta;
-				}
+					// Keep track of the total movement
+					currentTouch.totalDelta += currentTouch.delta;
+					mag = currentTouch.totalDelta.magnitude;
 
-				// If we're dragging the touch, send out drag events
-				if (currentTouch.dragStarted)
-				{
-					if (mTooltip != null) ShowTooltip(false);
-
-					bool isDisabled = (currentTouch.clickNotification == ClickNotification.None);
-					Notify(currentTouch.pressed, "OnDrag", currentTouch.delta);
-
-					if (isDisabled)
+					// If the drag event has not yet started, see if we've dragged the touch far enough to start it
+					if (!currentTouch.dragStarted && drag < mag)
 					{
-						// If the notification status has already been disabled, keep it as such
-						currentTouch.clickNotification = ClickNotification.None;
+						currentTouch.dragStarted = true;
+						currentTouch.delta = currentTouch.totalDelta;
 					}
-					else if (currentTouch.clickNotification == ClickNotification.BasedOnDelta && click < mag)
+
+					// If we're dragging the touch, send out drag events
+					if (currentTouch.dragStarted)
 					{
-						// We've dragged far enough to cancel the click
-						currentTouch.clickNotification = ClickNotification.None;
+						if (mTooltip != null) ShowTooltip(false);
+
+						bool isDisabled = (currentTouch.clickNotification == ClickNotification.None);
+						Notify(currentTouch.pressed, "OnDrag", currentTouch.delta);
+
+						if (isDisabled)
+						{
+							// If the notification status has already been disabled, keep it as such
+							currentTouch.clickNotification = ClickNotification.None;
+						}
+						else if (currentTouch.clickNotification == ClickNotification.BasedOnDelta && click < mag)
+						{
+							// We've dragged far enough to cancel the click
+							currentTouch.clickNotification = ClickNotification.None;
+						}
 					}
 				}
 			}
@@ -1029,20 +1111,23 @@ public class UICamera : MonoBehaviour
 		// Send out the unpress message
 		if (unpressed)
 		{
+			currentTouch.pressStarted = false;
 			if (mTooltip != null) ShowTooltip(false);
 
 			if (currentTouch.pressed != null)
 			{
 				Notify(currentTouch.pressed, "OnPress", false);
 
-				// Send a hover message to the object, but don't add it to the list of hovered items as it's already present
-				// This happens when the mouse is released over the same button it was pressed on, and since it already had
-				// its 'OnHover' event, it never got Highlight(false), so we simply re-notify it so it can update the visible state.
+				// Send a hover message to the object, but don't add it to the list of hovered items
+				// as it's already present. This happens when the mouse is released over the same button
+				// it was pressed on, and since it already had its 'OnHover' event, it never got
+				// Highlight(false), so we simply re-notify it so it can update the visible state.
 				if (useMouse && currentTouch.pressed == mHover) Notify(currentTouch.pressed, "OnHover", true);
 
 				// If the button/touch was released on the same object, consider it a click and select it
 				if (currentTouch.pressed == currentTouch.current ||
-					(currentTouch.clickNotification != ClickNotification.None && currentTouch.totalDelta.magnitude < drag))
+					(currentTouch.clickNotification != ClickNotification.None &&
+					currentTouch.totalDelta.magnitude < drag))
 				{
 					if (currentTouch.pressed != mSel)
 					{
@@ -1061,7 +1146,7 @@ public class UICamera : MonoBehaviour
 
 						Notify(currentTouch.pressed, "OnClick", null);
 
-						if (currentTouch.clickTime + 0.25f > time)
+						if (currentTouch.clickTime + 0.35f > time)
 						{
 							Notify(currentTouch.pressed, "OnDoubleClick", null);
 						}
@@ -1089,4 +1174,14 @@ public class UICamera : MonoBehaviour
 		Notify(mTooltip, "OnTooltip", val);
 		if (!val) mTooltip = null;
 	}
+
+#if UNITY_EDITOR
+	void OnGUI ()
+	{
+		if (debug && lastHit.collider != null)
+		{
+			GUILayout.Label("Last Hit: " + NGUITools.GetHierarchy(lastHit.collider.gameObject).Replace("\"", ""));
+		}
+	}
+#endif
 }

@@ -15,5 +15,13 @@ namespace Assets.Scripts
 		{
 			Cubes.Add(cubeItem);
 		}
+
+		public override string ToString()
+		{
+			string str = string.Empty;
+			foreach (CubeItem cubeItem in Cubes)
+				str += "{X:" + cubeItem.X + ",Y:" + cubeItem.Y + "}";
+			return str;
+		}
 	}
 }

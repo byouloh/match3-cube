@@ -54,8 +54,17 @@ namespace Assets.Scripts.Levels
 		{
 			RenderSettings.ambientLight = _defaultColor;
 			MainLight.gameObject.SetActive(true);
+
+			iTween.Stop(SpotLight1.gameObject);
+			SpotLight1.transform.position = iTweenPath.GetPath("Path1")[0];
 			SpotLight1.gameObject.SetActive(false);
+
+			iTween.Stop(SpotLight2.gameObject);
+			SpotLight2.transform.position = iTweenPath.GetPath("Path2")[0];
 			SpotLight2.gameObject.SetActive(false);
+
+			iTween.Stop(SpotLight3.gameObject);
+			SpotLight3.transform.position = iTweenPath.GetPath("Path3")[0];
 			SpotLight3.gameObject.SetActive(false);
 		}
 

@@ -14,7 +14,7 @@ namespace Assets.Scripts.GUIs
 		public UILabel GameOverLabel;
 		public UILabel TimeIsUpLabel;
 
-		public void Start()
+		public void Awake()
 		{
 			GameEvents.GameOver.Subscribe(OnGameOver);
 			GameEvents.GameWin.Subscribe(OnGameWin);

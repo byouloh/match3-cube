@@ -15,10 +15,6 @@ namespace Assets.Scripts.Levels
 		public void Awake()
 		{
 			Instance = this;
-		}
-
-		public void Start()
-		{
 			GameEvents.TopLairCleared.Subscribe(OnTopLairCleared);
 		}
 

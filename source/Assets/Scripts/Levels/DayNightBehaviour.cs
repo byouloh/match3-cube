@@ -36,7 +36,7 @@ namespace Assets.Scripts.Levels
 			iTween.ColorTo(_gameObject, iTween.Hash(iT.ColorTo.color, Color.black,
 			                                        iT.ColorTo.time, LoopTime,
 			                                        iT.ColorTo.looptype, iTween.LoopType.pingPong,
-													iT.ColorTo.easetype, iTween.EaseType.linear));
+													iT.ColorTo.easetype, iTween.EaseType.easeInQuad));
 		}
 
 		public override void OnStop()

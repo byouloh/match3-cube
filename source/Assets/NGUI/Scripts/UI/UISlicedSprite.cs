@@ -1,4 +1,4 @@
-﻿//----------------------------------------------
+//----------------------------------------------
 //            NGUI: Next-Gen UI kit
 // Copyright © 2011-2012 Tasharen Entertainment
 //----------------------------------------------
@@ -40,7 +40,7 @@ public class UISlicedSprite : UISprite
 	{
 		get
 		{
-			UIAtlas.Sprite sp = sprite;
+			UIAtlas.Sprite sp = GetAtlasSprite();
 			if (sp == null) return Vector2.zero;
 
 			Rect outer = sp.outer;
@@ -90,7 +90,7 @@ public class UISlicedSprite : UISprite
 			mChanged = true;
 		}
 
-		if (sprite != null && (force || mInner != mSprite.inner || mOuter != mSprite.outer))
+		if (isValid && (force || mInner != mSprite.inner || mOuter != mSprite.outer))
 		{
 			Texture tex = mainTexture;
 
@@ -214,10 +214,12 @@ public class UISlicedSprite : UISprite
 			for (int i = 0; i < 4; ++i) uv[i] = Vector2.zero;
 		}
 
+		Color colF = color;
+		colF.a *= mPanel.alpha;
 #if UNITY_3_5_4
-		Color col = color;
+		Color col = atlas.premultipliedAlpha ? NGUITools.ApplyPMA(colF) : colF;
 #else
-		Color32 col = color;
+		Color32 col = atlas.premultipliedAlpha ? NGUITools.ApplyPMA(colF) : colF;
 #endif
 
 		for (int x = 0; x < 3; ++x)

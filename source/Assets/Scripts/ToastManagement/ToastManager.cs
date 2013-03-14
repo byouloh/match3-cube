@@ -1,19 +1,29 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using Assets.Scripts.Common;
+using Assets.Scripts.Levels;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Assets.Scripts.ToastManagement
 {
-	public class ToastManager : MonoBehaviour
+	public class ToastManager : MonoBehaviourBase
 	{
 		private static readonly Dictionary<string, ToastStyle> _toastStyles;
 		public static ToastManager Instance { get; private set; }
 
 		private const string DEFAULT_TOAST_STYLE_NAME = "DefaultToastStyleName";
-		private const string EMPTY_CATEGORY = "EmptyCategory";
 		private List<Toast> _activeToasts;
 
-		public GUIStyle Style;
+		public UILabel BonusSecondsToast;
+		public UILabel PenaltySecondsToast;
+		public UILabel LevelTitleToast;
+		public UILabel ScoreToast;
+		public UILabel CubeScoreToast;
+		public Transform Hoster;
 
+		public Color[] Colors;
 
 		static ToastManager()
 		{
@@ -32,14 +42,24 @@ namespace Assets.Scripts.ToastManagement
 			RegisterStyle(DEFAULT_TOAST_STYLE_NAME, ToastStyle.CreateDefault());
 		}
 
-		public void OnGUI()
+		public void Update()
 		{
-			foreach (Toast toast in _activeToasts.ToArray())
+			for (int i = 0; i < _activeToasts.Count; i++)
 			{
-				toast.OnGUI();
+				Toast toast = _activeToasts[i];
+				toast.Update();
 				if (!toast.IsActive)
-					_activeToasts.Remove(toast);
+				{
+					RemoveToast(toast);
+					i--;
+				}
 			}
+		}
+
+		private void RemoveToast(Toast toast)
+		{
+			_activeToasts.Remove(toast);
+			Destroy(toast.Label.gameObject);
 		}
 
 		public static void RegisterStyle(string key, ToastStyle toastStyle)
@@ -54,28 +74,72 @@ namespace Assets.Scripts.ToastManagement
 
 		public static void Push(string message)
 		{
-			Instance.PushInternal(message, GetDefaultStartPosition(), DEFAULT_TOAST_STYLE_NAME, EMPTY_CATEGORY);
+			Instance.PushInternal(message, GetDefaultStartPosition(), DEFAULT_TOAST_STYLE_NAME);
 		}
 
 		public static void Push(string message, Vector2 position, string key)
 		{
-			Instance.PushInternal(message, position, key, EMPTY_CATEGORY);
+			Instance.PushInternal(message, position, key);
 		}
 
-		public static void Push(string message, Vector2 position, string key, string category)
+		public static void Push(string message, string key)
 		{
-			Instance.PushInternal(message, position, key, category);
+			Instance.PushInternal(message, null, key);
 		}
 
-		private void PushInternal(string message, Vector2 position, string key, string category)
+		private void PushInternal(string message, Vector2? position, string key)
 		{
+			UILabel toastPrefab = GetToastPrefab(key);
+			UILabel label = Instantiate<UILabel>(toastPrefab);
+			label.text = message;
+			label.cachedTransform.parent = Hoster;
+			if (position.HasValue)
+				label.transform.localPosition = position.Value;
+			else
+				label.transform.localPosition = toastPrefab.transform.localPosition;
+			label.transform.localScale = toastPrefab.transform.localScale;
+
 			ToastStyle toastStyle = _toastStyles[key];
-			Toast toast = new Toast(message, position, toastStyle, category);
 
-			if (category != EMPTY_CATEGORY)
-				_activeToasts.RemoveAll(t => t.Category == category);
+			if (toastStyle.IsRandomColor)
+				label.color = GetRandomColor();
+
+			Toast toast = new Toast(label, toastStyle);
+
+			if (toastStyle.Category != ToastStyle.EMPTY_CATEGORY)
+				ClearCategory(toastStyle.Category);
 
 			_activeToasts.Add(toast);
+		}
+
+		private void ClearCategory(string category)
+		{
+			foreach (Toast toast in _activeToasts.Where(t => t.Style.Category == category).ToArray())
+				RemoveToast(toast);
+		}
+
+		private UILabel GetToastPrefab(string key)
+		{
+			switch (key)
+			{
+				case TimerManager.BONUS_SECONDS_TOAST_STYLE:
+					return BonusSecondsToast;
+				case TimerManager.PENALTY_SECONDS_TOAST_STYLE:
+					return PenaltySecondsToast;
+				case LevelsManager.LEVEL_TOAST_STYLE:
+					return LevelTitleToast;
+				case ScoreManager.SCORE_TOAST_STYLE:
+					return ScoreToast;
+				case ScoreManager.CUBE_SCORE_TOAST_STYLE:
+					return CubeScoreToast;
+				default:
+					throw new NotSupportedException(key);
+			}
+		}
+
+		private Color GetRandomColor()
+		{
+			return Colors[Random.Range(0, Colors.Length)];
 		}
 	}
 }

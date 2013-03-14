@@ -19,6 +19,8 @@ namespace Assets.Scripts
 		private CubeItem _secondSelectedCube;
 		private CubeItem[, ,] _field;
 		private CubeItem _selectedCube;
+		private bool _isFirsLaunch = true;
+		private bool _isNewGameStarted;
 
 		public Transform CubesHoster;
 		public Transform CubePrefab;
@@ -27,7 +29,6 @@ namespace Assets.Scripts
 		public int Y;
 		public int Z;
 		public float CubeArea = 1.3f;
-		public GUIStyle ToastStyle;
 		public Material QuestionMaterial;
 		public Material MoleMaterial;
 
@@ -35,28 +36,35 @@ namespace Assets.Scripts
 
 		public void Awake()
 		{
+			Random.seed = DateTime.Now.Millisecond;
 			Instance = this;
-			GameEvents.Initalize();
 
 			ToastManager.RegisterStyle(LEVEL_TOAST_STYLE,
 									   new ToastStyle
 									   {
 										   Effect = Effect.Bubble,
-										   Duration = 1f,
-										   GUIStyle = ToastStyle
+										   Duration = 1f
 									   });
-		}
-
-		public void Start()
-		{
 			GameEvents.SnakeMoved.Subscribe(OnSnakeMoved);
 			GameEvents.StartNewGame.Subscribe(OnStartNewGame);
-			Random.seed = (int)(Time.realtimeSinceStartup * 1000000);
-			StartGame();
 		}
 
 		public void Update()
 		{
+			if (_isFirsLaunch)
+			{
+				GameEvents.StartNewGame.Publish(GameEventArgs.Empty);
+				_isFirsLaunch = false;
+				return;
+			}
+
+			if (_isNewGameStarted)
+			{
+				CheckOnMatches();
+				_isNewGameStarted = false;
+				return;
+			}
+
 			if (_selectedCube != null)
 			{
 				SelectCube(_selectedCube);
@@ -75,11 +83,7 @@ namespace Assets.Scripts
 			_secondSelectedCube = null;
 			ClearField();
 			BuildField();
-			ScoreManager.Reset();
-			TimerManager.Reset();
-			TryBoomScript.Instance.Reset();
-			CheckOnMatches();
-			GameEvents.NewGameStarted.Publish(GameEventArgs.Empty);
+			_isNewGameStarted = true;
 		}
 
 		#region Build functions
@@ -475,6 +479,11 @@ namespace Assets.Scripts
 			}
 		}
 
+		public bool HasMatches()
+		{
+			return HasMatches(GetTopLair());
+		}
+
 		private bool HasMatches(CubeItem[,] field)
 		{
 			return GetMatches(field).Any();
@@ -514,30 +523,6 @@ namespace Assets.Scripts
 		public CubeItem GetCube(int x, int y)
 		{
 			return _field[x, y, 0];
-		}
-
-		#endregion
-
-		#region Turns
-
-		public void RotateUp()
-		{
-
-		}
-
-		public void RotateDown()
-		{
-
-		}
-
-		public void RotateLeft()
-		{
-
-		}
-
-		public void RotateRight()
-		{
-
 		}
 
 		#endregion

@@ -23,13 +23,9 @@ namespace Assets.Scripts.Levels
 		{
 			_viruses = new List<VirusItem>();
 			Instance = this;
-		}
-	
-		public void Start()
-		{
 			GameEvents.CubeRemoved.Subscribe(OnCubeRemoved);
 		}
-
+	
 		public void Update ()
 		{
 			if (IsActive)

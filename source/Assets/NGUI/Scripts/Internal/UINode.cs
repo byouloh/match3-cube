@@ -1,7 +1,11 @@
-﻿//----------------------------------------------
+//----------------------------------------------
 //            NGUI: Next-Gen UI kit
 // Copyright © 2011-2012 Tasharen Entertainment
 //----------------------------------------------
+
+#if UNITY_3_4 || UNITY_3_5
+#define UNITY_3
+#endif
 
 using UnityEngine;
 using System.Collections.Generic;
@@ -19,14 +23,18 @@ public class UINode
 	public Transform trans;			// Managed transform
 	public UIWidget widget;			// Widget on this transform, if any
 
+#if UNITY_3 || UNITY_4_0
 	public bool lastActive = false;	// Last active state
 	public Vector3 lastPos;			// Last local position, used to see if it has changed
 	public Quaternion lastRot;		// Last local rotation
 	public Vector3 lastScale;		// Last local scale
 
-	public int changeFlag = -1;		// -1 = not checked, 0 = not changed, 1 = changed
-
 	GameObject mGo;
+#else
+	float mLastAlpha = 0f;
+#endif
+
+	public int changeFlag = -1;		// -1 = not checked, 0 = not changed, 1 = changed
 
 	/// <summary>
 	/// -1 = not initialized, 0 = not visible, 1 = visible.
@@ -52,10 +60,12 @@ public class UINode
 	public UINode (Transform t)
 	{
 		trans = t;
+#if UNITY_3 || UNITY_4_0
 		lastPos = trans.localPosition;
 		lastRot = trans.localRotation;
 		lastScale = trans.localScale;
 		mGo = t.gameObject;
+#endif
 	}
 
 	/// <summary>
@@ -64,7 +74,8 @@ public class UINode
 
 	public bool HasChanged ()
 	{
-		bool isActive = NGUITools.GetActive(mGo) && (widget == null || (widget.enabled && widget.color.a > 0.001f));
+#if UNITY_3 || UNITY_4_0
+		bool isActive = NGUITools.GetActive(mGo) && (widget == null || (widget.enabled && widget.isVisible));
 
 		if (lastActive != isActive || (isActive &&
 			(lastPos != trans.localPosition ||
@@ -77,6 +88,19 @@ public class UINode
 			lastScale = trans.localScale;
 			return true;
 		}
+#else
+		if (widget != null && widget.finalAlpha != mLastAlpha)
+		{
+			mLastAlpha = widget.finalAlpha;
+			trans.hasChanged = false;
+			return true;
+		}
+		else if (trans.hasChanged)
+		{
+			trans.hasChanged = false;
+			return true;
+		}
+#endif
 		return false;
 	}
 }

@@ -1,6 +1,6 @@
 //----------------------------------------------
 //            NGUI: Next-Gen UI kit
-// Copyright © 2011-2012 Tasharen Entertainment
+// Copyright Â© 2011-2012 Tasharen Entertainment
 //----------------------------------------------
 
 using UnityEngine;
@@ -166,7 +166,7 @@ public class UIPopupList : MonoBehaviour
 				
 				if (textLabel != null)
 				{
-					textLabel.text = (isLocalized && Localization.instance != null) ? Localization.instance.Get(value) : value;
+					textLabel.text = (isLocalized) ? Localization.Localize(value) : value;
 #if UNITY_EDITOR
 					UnityEditor.EditorUtility.SetDirty(textLabel.gameObject);
 #endif
@@ -247,7 +247,9 @@ public class UIPopupList : MonoBehaviour
 
 			mHighlightedLabel = lbl;
 
-			UIAtlas.Sprite sp = mHighlight.sprite;
+			UIAtlas.Sprite sp = mHighlight.GetAtlasSprite();
+			if (sp == null) return;
+
 			float offsetX = sp.inner.xMin - sp.outer.xMin;
 			float offsetY = sp.inner.yMin - sp.outer.yMin;
 
@@ -440,7 +442,7 @@ public class UIPopupList : MonoBehaviour
 
 	void OnClick()
 	{
-		if (mChild == null && atlas != null && font != null && items.Count > 1)
+		if (mChild == null && atlas != null && font != null && items.Count > 0)
 		{
 			mLabelList.Clear();
 
@@ -481,9 +483,11 @@ public class UIPopupList : MonoBehaviour
 			mHighlight.pivot = UIWidget.Pivot.TopLeft;
 			mHighlight.color = highlightColor;
 
-			UIAtlas.Sprite hlsp = mHighlight.sprite;
+			UIAtlas.Sprite hlsp = mHighlight.GetAtlasSprite();
+			if (hlsp == null) return;
+
 			float hlspHeight = hlsp.inner.yMin - hlsp.outer.yMin;
-			float fontScale = font.size * textScale;
+			float fontScale = font.size * font.pixelSize * textScale;
 			float x = 0f, y = -padding.y;
 			List<UILabel> labels = new List<UILabel>();
 
@@ -497,7 +501,7 @@ public class UIPopupList : MonoBehaviour
 				lbl.font = font;
 				lbl.text = (isLocalized && Localization.instance != null) ? Localization.instance.Get(s) : s;
 				lbl.color = textColor;
-				lbl.cachedTransform.localPosition = new Vector3(bgPadding.x + padding.x, y, 0f);
+				lbl.cachedTransform.localPosition = new Vector3(bgPadding.x + padding.x, y, -0.01f);
 				lbl.MakePixelPerfect();
 
 				if (textScale != 1f)

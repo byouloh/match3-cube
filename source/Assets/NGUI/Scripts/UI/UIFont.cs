@@ -1,4 +1,4 @@
-﻿//----------------------------------------------
+//----------------------------------------------
 //            NGUI: Next-Gen UI kit
 // Copyright © 2011-2012 Tasharen Entertainment
 //----------------------------------------------
@@ -36,9 +36,11 @@ public class UIFont : MonoBehaviour
 	[HideInInspector][SerializeField] int mSpacingY = 0;
 	[HideInInspector][SerializeField] UIAtlas mAtlas;
 	[HideInInspector][SerializeField] UIFont mReplacement;
+	[HideInInspector][SerializeField] float mPixelSize = 1f;
 
 	// Cached value
 	UIAtlas.Sprite mSprite = null;
+	int mPMA = -1;
 
 	// BUG: There is a bug in Unity 3.4.2 and all the way up to 3.5 b7 -- when instantiating from prefabs,
 	// for some strange reason classes get initialized with default values. So for example, 'mSprite' above
@@ -91,6 +93,7 @@ public class UIFont : MonoBehaviour
 					if (sprite != null) mUVRect = uvRect;
 				}
 
+				mPMA = -1;
 				mAtlas = value;
 				MarkAsDirty();
 			}
@@ -116,9 +119,68 @@ public class UIFont : MonoBehaviour
 			}
 			else if (mAtlas == null && mMat != value)
 			{
+				mPMA = -1;
 				mMat = value;
 				MarkAsDirty();
 			}
+		}
+	}
+
+	/// <summary>
+	/// Pixel size is a multiplier applied to label dimensions when performing MakePixelPerfect() pixel correction.
+	/// Most obvious use would be on retina screen displays. The resolution doubles, but with UIRoot staying the same
+	/// for layout purposes, you can still get extra sharpness by switching to an HD font that has pixel size set to 0.5.
+	/// </summary>
+
+	public float pixelSize
+	{
+		get
+		{
+			if (mReplacement != null) return mReplacement.pixelSize;
+			if (mAtlas != null) return mAtlas.pixelSize;
+			return mPixelSize;
+		}
+		set
+		{
+			if (mReplacement != null)
+			{
+				mReplacement.pixelSize = value;
+			}
+			else if (mAtlas != null)
+			{
+				mAtlas.pixelSize = value;
+			}
+			else
+			{
+				float val = Mathf.Clamp(value, 0.25f, 4f);
+
+				if (mPixelSize != val)
+				{
+					mPixelSize = val;
+					MarkAsDirty();
+				}
+			}
+		}
+	}
+
+	/// <summary>
+	/// Whether the font is using a premultiplied alpha material.
+	/// </summary>
+
+	public bool premultipliedAlpha
+	{
+		get
+		{
+			if (mReplacement != null) return mReplacement.premultipliedAlpha;
+
+			if (mAtlas != null) return mAtlas.premultipliedAlpha;
+
+			if (mPMA == -1)
+			{
+				Material mat = material;
+				mPMA = (mat != null && mat.shader != null && mat.shader.name.Contains("Premultiplied")) ? 1 : 0;
+			}
+			return (mPMA == 1);
 		}
 	}
 
@@ -299,12 +361,7 @@ public class UIFont : MonoBehaviour
 				mSprite = mAtlas.GetSprite(mFont.spriteName);
 				if (mSprite == null) mSprite = mAtlas.GetSprite(name);
 				mSpriteSet = true;
-
-				if (mSprite == null)
-				{
-					Debug.LogError("Can't find the sprite '" + mFont.spriteName + "' in UIAtlas on " + NGUITools.GetHierarchy(mAtlas.gameObject));
-					mFont.spriteName = null;
-				}
+				if (mSprite == null) mFont.spriteName = null;
 			}
 			return mSprite;
 		}
@@ -387,10 +444,11 @@ public class UIFont : MonoBehaviour
 
 	public void MarkAsDirty ()
 	{
-		if (mReplacement != null) mReplacement.MarkAsDirty();
 #if UNITY_EDITOR
 		UnityEditor.EditorUtility.SetDirty(gameObject);
 #endif
+		if (mReplacement != null) mReplacement.MarkAsDirty();
+
 		mSprite = null;
 		UILabel[] labels = NGUITools.FindActive<UILabel>();
 
@@ -739,16 +797,16 @@ public class UIFont : MonoBehaviour
 	/// </summary>
 
 #if UNITY_3_5_4
-	public void Print (string text, Color32 color, BetterList<Vector3> verts, BetterList<Vector2> uvs, BetterList<Color> cols,
-		bool encoding, SymbolStyle symbolStyle, Alignment alignment, int lineWidth)
+	public void Print (string text, Color color, BetterList<Vector3> verts, BetterList<Vector2> uvs, BetterList<Color> cols,
+		bool encoding, SymbolStyle symbolStyle, Alignment alignment, int lineWidth, bool premultiply)
 #else
 	public void Print (string text, Color32 color, BetterList<Vector3> verts, BetterList<Vector2> uvs, BetterList<Color32> cols,
-		bool encoding, SymbolStyle symbolStyle, Alignment alignment, int lineWidth)
+		bool encoding, SymbolStyle symbolStyle, Alignment alignment, int lineWidth, bool premultiply)
 #endif
 	{
 		if (mReplacement != null)
 		{
-			mReplacement.Print(text, color, verts, uvs, cols, encoding, symbolStyle, alignment, lineWidth);
+			mReplacement.Print(text, color, verts, uvs, cols, encoding, symbolStyle, alignment, lineWidth, premultiply);
 		}
 		else if (mFont != null && text != null)
 		{
@@ -803,7 +861,7 @@ public class UIFont : MonoBehaviour
 
 				if (encoding && c == '[')
 				{
-					int retVal = NGUITools.ParseSymbol(text, i, mColors);
+					int retVal = NGUITools.ParseSymbol(text, i, mColors, premultiply);
 
 					if (retVal > 0)
 					{

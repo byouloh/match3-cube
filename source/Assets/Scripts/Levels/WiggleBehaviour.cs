@@ -25,9 +25,6 @@ namespace Assets.Scripts.Levels
 			{
 				NextTurn();
 			}
-
-			//if (IsActive)
-			//	FieldManager.Instance.UpdateAllCubesPosition();
 		}
 
 		public override void OnRun()

@@ -22,10 +22,6 @@ namespace Assets.Scripts.Levels.SnakeLevel
 		public void Awake()
 		{
 			Instance = this;
-		}
-
-		public void Start()
-		{
 			GameEvents.CubeRemoved.Subscribe(OnCubeRemoved);
 		}
 

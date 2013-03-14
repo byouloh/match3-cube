@@ -10,14 +10,11 @@ namespace Assets.Scripts.Levels
 {
 	public class LevelsManager : MonoBehaviour
 	{
-		private const string LEVEL_TOAST_STYLE = "LevelToastStyleKey";
+		public const string LEVEL_TOAST_STYLE = "LevelToastStyleKey";
 
+		private readonly int[] _levelPoints = new int[] {100, 150, 200, 250, 300, 350, 400, 450, 500, 550};
 		private List<Level> _levels;
 
-		public Texture LevelsTexture;
-		public Texture StripTexture;
-		public int PixelsPerLevel = 40;
-		public GUIStyle ToastStyle;
 		public Level CurrentLevel { get; private set; }
 
 		public static LevelsManager Instance { get; private set; }
@@ -27,24 +24,24 @@ namespace Assets.Scripts.Levels
 			Instance = this;
 
 			ToastManager.RegisterStyle(LEVEL_TOAST_STYLE,
-									   new ToastStyle
-									   {
-										   Effect = Effect.Oncoming,
-										   Duration = 3f,
-										   GUIStyle = ToastStyle
-									   });
-		}
-
-		public void Start()
-		{
-			EnsureLevels(false);
-			GameEvents.NewGameStarted.Subscribe(OnNewGameStarted);
+			                           new ToastStyle
+				                           {
+					                           Effect = Effect.Oncoming,
+					                           Duration = 2f
+				                           });
+			GameEvents.StartNewGame.Subscribe(OnStartNewGame);
 			GameEvents.GameOver.Subscribe(OnGameOver);
 			GameEvents.ScoreAdded.Subscribe(OnScoreAdded);
 		}
 
-		private void OnNewGameStarted(GameEventArgs gameEventArgs)
+		public void Start()
 		{
+			EnsureLevels();
+		}
+
+		private void OnStartNewGame(GameEventArgs gameEventArgs)
+		{
+			ShuffleLevels();
 			ChangeLevel(_levels.First());
 		}
 
@@ -54,143 +51,81 @@ namespace Assets.Scripts.Levels
 			CurrentLevel = null;
 		}
 
-		private void EnsureLevels(bool isRandom)
+		private void ShuffleLevels()
 		{
-			if (_levels == null)
-			{
-				_levels = new List<Level>();
-				LevelBehaviour[] behaviours = new LevelBehaviour[]
-					{
-						LightsBehaviour.Instance,
-						WiggleBehaviour.Instance,
-						SnakeBahaviour.Instance,
-						TurnBehaviour.Instance,
-						RotationBehaviour.Instance,
-						VirusesBehaviour.Instance,
-						DayNightBehaviour.Instance,
-						MolesBehaviour.Instance,					
-						QuestionsBehaviour.Instance
-						
-						//RunAwayBehaviour.Instance,
-					};
-
-				if (isRandom)
-					GameRandom.ShuffleArray(behaviours);
-
-				_levels.Add(new Level
-					{
-						Number = 1,
-						Title = "First level",
-						Points = 100,
-						Behaviour = EmptyBehaviour.Instance
-						//Behaviour = QuestionsBehaviour.Instance
-					});
-				_levels.Add(new Level
-					{
-						Number = 2,
-						Title = "Level 2",
-						Points = 300,
-						Behaviour = behaviours[0]
-					});
-				_levels.Add(new Level
-					{
-						Number = 3,
-						Title = "Level 3",
-						Points = 350,
-						Behaviour = behaviours[1]
-					});
-				_levels.Add(new Level
-					{
-						Number = 4,
-						Title = "Level 4",
-						Points = 350,
-						Behaviour = behaviours[2]
-					});
-				_levels.Add(new Level
-					{
-						Number = 5,
-						Title = "Level 5",
-						Points = 350,
-						Behaviour = behaviours[3]
-					});
-				_levels.Add(new Level
-					{
-						Number = 6,
-						Title = "Level 6",
-						Points = 350,
-						Behaviour = behaviours[4]
-					});
-				_levels.Add(new Level
-					{
-						Number = 7,
-						Title = "Level 7",
-						Points = 350,
-						Behaviour = behaviours[5]
-					});
-				_levels.Add(new Level
-					{
-						Number = 8,
-						Title = "Level 8",
-						Points = 350,
-						Behaviour = behaviours[6]
-					});
-				_levels.Add(new Level
-					{
-						Number = 9,
-						Title = "Level 9",
-						Points = 350,
-						Behaviour = behaviours[7]
-					});
-				_levels.Add(new Level
-					{
-						Number = 10,
-						Title = "Level 10",
-						Points = 350,
-						Behaviour = behaviours[8]
-					});
-			}
+			Level firstLevel = _levels.First();
+			_levels.Remove(firstLevel);
+			_levels.Shuffle();
+			_levels.Insert(0, firstLevel);
+			NormalizeLevelNumbers();
 		}
 
-		#region OnGUI
-
-		public void OnGUI()
+		private void NormalizeLevelNumbers()
 		{
-			ShowProgressBar();
-		}
-
-		private void ShowProgressBar()
-		{
-			const int width = 59;
-			const int height = 426;
-			int left = Screen.width - width - 20;
-			int top = (Screen.height - height) / 2;
-			GUI.DrawTexture(new Rect(left, top, width, height), LevelsTexture);
-
-			int stripHeight = GetStripHeight(ScoreManager.Instance.ViewScore);
-			GUI.DrawTexture(new Rect(left, top + height - stripHeight, 20, stripHeight), StripTexture);
-		}
-
-		private int GetStripHeight(int score)
-		{
-			int height = 0;
+			int number = 1;
 			foreach (Level level in _levels)
 			{
-				if (score > level.Points)
-				{
-					height += PixelsPerLevel;
-					score -= level.Points;
-				}
-				else
-				{
-					height += PixelsPerLevel*score/level.Points;
-					break;
-				}
+				level.Number = number;
+				level.Points = _levelPoints[number - 1];
+				number++;
 			}
-
-			return height;
 		}
 
-		#endregion
+		private void EnsureLevels()
+		{
+			_levels = new List<Level>();
+			_levels.Add(new Level
+				{
+					Title = "Begin",
+					Behaviour = EmptyBehaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Day and night",
+					Behaviour = DayNightBehaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Spotlights",
+					Behaviour = LightsBehaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Wiggle",
+					Behaviour = WiggleBehaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Snake",
+					Behaviour = SnakeBahaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Turn",
+					Behaviour = TurnBehaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Rotation",
+					Behaviour = RotationBehaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Viruses",
+					Behaviour = VirusesBehaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Mole",
+					Behaviour = MolesBehaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Questions",
+					Behaviour = QuestionsBehaviour.Instance
+				});
+			NormalizeLevelNumbers();
+		}
 
 		private void OnScoreAdded(GameEventArgs gameEventArgs)
 		{
@@ -198,7 +133,7 @@ namespace Assets.Scripts.Levels
 			foreach (Level level in _levels)
 			{
 				score -= level.Points;
-				if (score <= 0)
+				if (score < 0)
 				{
 					if (level != CurrentLevel)
 						ChangeLevel(level);
@@ -216,7 +151,7 @@ namespace Assets.Scripts.Levels
 
 			CurrentLevel = level;
 			CurrentLevel.Behaviour.Run();
-			ShowCurrentLevel();
+			ToastManager.Push(string.Format("Level {0}\n{1}", CurrentLevel.Number, CurrentLevel.Title), LEVEL_TOAST_STYLE);
 			if (level.Number > 1)
 			{
 				AudioManager.Play(Sound.NextLevel);
@@ -224,11 +159,24 @@ namespace Assets.Scripts.Levels
 			}
 		}
 
-		private void ShowCurrentLevel()
+		public float GetLevelsProgress()
 		{
-			ToastManager.Push(string.Format("Level {0}\n{1}", CurrentLevel.Number, CurrentLevel.Title),
-			                  new Vector2(Screen.width/2, Screen.height/2),
-			                  LEVEL_TOAST_STYLE);
+			float progress = 0;
+			int score = ScoreManager.Instance.ViewScore;
+			foreach (Level level in _levels)
+			{
+				if (score > level.Points)
+				{
+					progress += 1.0f;
+					score -= level.Points;
+				}
+				else
+				{
+					progress += score*1.0f/level.Points;
+					break;
+				}
+			}
+			return progress;
 		}
 	}
 }

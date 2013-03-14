@@ -6,8 +6,8 @@ namespace Assets.Scripts
 {
 	public class TimerManager : MonoBehaviour
 	{
-		private const string BONUS_SECONDS_TOAST_STYLE = "BonusSecondsToastStyleKey";
-		private const string PENALTY_SECONDS_TOAST_STYLE = "PenaltySecondsToastStyleKey";
+		public const string BONUS_SECONDS_TOAST_STYLE = "BonusSecondsToastStyleKey";
+		public const string PENALTY_SECONDS_TOAST_STYLE = "PenaltySecondsToastStyleKey";
 		private const string SECONDS_TOAST_CATEGORY = "SecondsToastCategory";
 		private float _startTime;
 		private int _bonusSeconds;
@@ -18,8 +18,6 @@ namespace Assets.Scripts
 
 		public int SecondsOnStart;
 		public int SecondsNearToOver;
-		public GUIStyle BonusToastStyle;
-		public GUIStyle PenaltyToastStyle;
 		public Texture2D FadeBackground;
 		public int NextLevelBonusTime;
 
@@ -31,72 +29,31 @@ namespace Assets.Scripts
 		{
 			Instance = this;
 			_cameraFade = iTween.CameraFadeAdd(FadeBackground);
-		}
-
-		public void Start ()
-		{
-			Reset();
-
 			ToastManager.RegisterStyle(BONUS_SECONDS_TOAST_STYLE,
-			                           new ToastStyle
-				                           {
-					                           Effect = Effect.Transparency,
-					                           Duration = 2f,
-											   GUIStyle = BonusToastStyle
-				                           });
+									   new ToastStyle
+									   {
+										   Effect = Effect.Transparency,
+										   Duration = 2f,
+										   Category = SECONDS_TOAST_CATEGORY
+									   });
 
 			ToastManager.RegisterStyle(PENALTY_SECONDS_TOAST_STYLE,
 									   new ToastStyle
 									   {
 										   Effect = Effect.Transparency,
 										   Duration = 2f,
-										   GUIStyle = PenaltyToastStyle
+										   Category = SECONDS_TOAST_CATEGORY
 									   });
 
 			GameEvents.MatchesRemoved.Subscribe(OnMatchesRemoved);
 			GameEvents.NextLevel.Subscribe(OnNextLevel);
-		}
-
-		private void OnMatchesRemoved(MatchesEventArgs matchesEventArgs)
-		{
-			AddBonusSeconds(matchesEventArgs.Matches.Count);
-		}
-
-		private void AddBonusSeconds(int seconds)
-		{
-			_bonusSeconds += seconds;
-			ToastManager.Push(
-				string.Format("+{0} sec", seconds),
-				new Vector2(120, 90),
-				BONUS_SECONDS_TOAST_STYLE,
-				SECONDS_TOAST_CATEGORY);
-		}
-
-		public void AddPenaltySeconds(int seconds)
-		{
-			PenaltyFade();
-			_penaltySeconds += seconds;
-			ToastManager.Push(
-				string.Format("-{0} sec", seconds),
-				new Vector2(120, 90),
-				PENALTY_SECONDS_TOAST_STYLE, 
-				SECONDS_TOAST_CATEGORY);
-		}
-
-		private void PenaltyFade()
-		{
-			iTween.Stop(_cameraFade);
-			iTween.CameraFadeTo(0.5f, 0.1f);
-			iTween.CameraFadeTo(iTween.Hash(iT.CameraFadeTo.amount, 0.0f,
-											  iT.CameraFadeTo.time, 0.5f,
-											  iT.CameraFadeTo.delay, 0.2f));
-			AudioManager.Play(Sound.Fail);
+			GameEvents.StartNewGame.Subscribe(OnStartNewGame);
 		}
 
 		public void Update()
 		{
-			RemainSeconds = Mathf.Clamp(SecondsOnStart + _bonusSeconds - _penaltySeconds - (int) (Time.time - _startTime),
-			                                0, int.MaxValue);
+			RemainSeconds = Mathf.Clamp(SecondsOnStart + _bonusSeconds - _penaltySeconds - (int)(Time.time - _startTime),
+											0, int.MaxValue);
 
 			if (RemainSeconds == 0 && !_isOver)
 			{
@@ -117,13 +74,44 @@ namespace Assets.Scripts
 			}
 		}
 
-		public static void Reset()
+		private void OnStartNewGame(GameEventArgs gameEventArgs)
 		{
-			Instance._startTime = Time.time;
-			Instance._bonusSeconds = 0;
-			Instance._penaltySeconds = 0;
-			Instance._isOver = false;
-			Instance._isNearToOver = false;
+			_startTime = Time.time;
+			_bonusSeconds = 0;
+			_penaltySeconds = 0;
+			_isOver = false;
+			_isNearToOver = false;
+		}
+
+		private void OnMatchesRemoved(MatchesEventArgs matchesEventArgs)
+		{
+			AddBonusSeconds(matchesEventArgs.Matches.Count);
+		}
+
+		private void AddBonusSeconds(int seconds)
+		{
+			if (!_isOver)
+			{
+				_bonusSeconds += seconds;
+				ToastManager.Push(string.Format("+{0} sec", seconds), BONUS_SECONDS_TOAST_STYLE);
+			}
+		}
+
+		public void AddPenaltySeconds(int seconds)
+		{
+			PenaltyFade();
+			_penaltySeconds += seconds;
+			ToastManager.Push(string.Format("-{0} sec", seconds), PENALTY_SECONDS_TOAST_STYLE);
+		}
+
+		private void PenaltyFade()
+		{
+			iTween.Stop(_cameraFade);
+			iTween.CameraFadeTo(0.5f, 0.1f);
+			iTween.CameraFadeTo(iTween.Hash(iT.CameraFadeTo.amount, 0.0f,
+											  iT.CameraFadeTo.time, 0.5f,
+											  iT.CameraFadeTo.delay, 0.2f));
+			AudioManager.Play(Sound.Fail);
 		}
 
 		private void OnNextLevel(GameEventArgs gameEventArgs)

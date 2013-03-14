@@ -1,4 +1,4 @@
-﻿//----------------------------------------------
+//----------------------------------------------
 //            NGUI: Next-Gen UI kit
 // Copyright © 2011-2012 Tasharen Entertainment
 //----------------------------------------------
@@ -61,7 +61,7 @@ public class UISprite : UIWidget
 				{
 					if (mAtlas != null && mAtlas.spriteList.Count > 0)
 					{
-						sprite = mAtlas.spriteList[0];
+						SetAtlasSprite(mAtlas.spriteList[0]);
 						mSpriteName = mSprite.name;
 					}
 				}
@@ -107,44 +107,72 @@ public class UISprite : UIWidget
 				mSpriteName = value;
 				mSprite = null;
 				mChanged = true;
-				if (mSprite != null) UpdateUVs(true);
+				if (isValid) UpdateUVs(true);
 			}
 		}
 	}
 
 	/// <summary>
-	/// Get the sprite used by the atlas.
+	/// Is there a valid sprite to work with?
 	/// </summary>
 
-	public UIAtlas.Sprite sprite
+	public bool isValid { get { return GetAtlasSprite() != null; } }
+
+	/// <summary>
+	/// Retrieve the atlas sprite referenced by the spriteName field.
+	/// </summary>
+
+	public UIAtlas.Sprite GetAtlasSprite ()
 	{
-		get
-		{
-			if (!mSpriteSet) mSprite = null;
+		if (!mSpriteSet) mSprite = null;
 
-			if (mSprite == null && mAtlas != null)
+		if (mSprite == null && mAtlas != null)
+		{
+			if (!string.IsNullOrEmpty(mSpriteName))
 			{
-				if (!string.IsNullOrEmpty(mSpriteName))
-				{
-					sprite = mAtlas.GetSprite(mSpriteName);
-				}
-
-				if (mSprite == null && mAtlas.spriteList.Count > 0)
-				{
-					sprite = mAtlas.spriteList[0];
-					mSpriteName = mSprite.name;
-				}
-
-				// If the sprite has been set, update the material
-				if (mSprite != null) material = mAtlas.spriteMaterial;
+				UIAtlas.Sprite sp = mAtlas.GetSprite(mSpriteName);
+				if (sp == null) return null;
+				SetAtlasSprite(sp);
 			}
-			return mSprite;
+
+			if (mSprite == null && mAtlas.spriteList.Count > 0)
+			{
+				UIAtlas.Sprite sp = mAtlas.spriteList[0];
+				if (sp == null) return null;
+				SetAtlasSprite(sp);
+
+				if (mSprite == null)
+				{
+					Debug.LogError(mAtlas.name + " seems to have a null sprite!");
+					return null;
+				}
+				mSpriteName = mSprite.name;
+			}
+
+			// If the sprite has been set, update the material
+			if (mSprite != null) material = mAtlas.spriteMaterial;
 		}
-		set
+		return mSprite;
+	}
+
+	/// <summary>
+	/// Set the atlas sprite directly.
+	/// </summary>
+
+	protected void SetAtlasSprite (UIAtlas.Sprite sp)
+	{
+		mChanged = true;
+		mSpriteSet = true;
+
+		if (sp != null)
 		{
-			mSprite = value;
-			mSpriteSet = true;
-			material = (mSprite != null && mAtlas != null) ? mAtlas.spriteMaterial : null;
+			mSprite = sp;
+			mSpriteName = mSprite.name;
+		}
+		else
+		{
+			mSpriteName = (mSprite != null) ? mSprite.name : "";
+			mSprite = sp;
 		}
 	}
 
@@ -158,7 +186,7 @@ public class UISprite : UIWidget
 		{
 			Vector2 v = Vector2.zero;
 
-			if (sprite != null)
+			if (isValid)
 			{
 				Pivot pv = pivot;
 
@@ -207,7 +235,7 @@ public class UISprite : UIWidget
 
 	virtual public void UpdateUVs (bool force)
 	{
-		if (sprite != null && (force || mOuter != mSprite.outer))
+		if (isValid && (force || mOuter != mSprite.outer))
 		{
 			Texture tex = mainTexture;
 
@@ -231,7 +259,7 @@ public class UISprite : UIWidget
 
 	override public void MakePixelPerfect ()
 	{
-		if (sprite == null) return;
+		if (!isValid) return;
 
 		Texture tex = mainTexture;
 		Vector3 scale = cachedTransform.localScale;
@@ -250,24 +278,18 @@ public class UISprite : UIWidget
 		int height = Mathf.RoundToInt(Mathf.Abs(scale.y) * (1f + mSprite.paddingTop + mSprite.paddingBottom));
 
 		Vector3 pos = cachedTransform.localPosition;
+		pos.x = (Mathf.CeilToInt(pos.x * 4f) >> 2);
+		pos.y = (Mathf.CeilToInt(pos.y * 4f) >> 2);
 		pos.z = Mathf.RoundToInt(pos.z);
 
 		if (width % 2 == 1 && (pivot == Pivot.Top || pivot == Pivot.Center || pivot == Pivot.Bottom))
 		{
-			pos.x = Mathf.Floor(pos.x) + 0.5f;
-		}
-		else
-		{
-			pos.x = Mathf.Round(pos.x);
+			pos.x += 0.5f;
 		}
 
 		if (height % 2 == 1 && (pivot == Pivot.Left || pivot == Pivot.Center || pivot == Pivot.Right))
 		{
-			pos.y = Mathf.Ceil(pos.y) - 0.5f;
-		}
-		else
-		{
-			pos.y = Mathf.Round(pos.y);
+			pos.y += 0.5f;
 		}
 
 		cachedTransform.localPosition = pos;
@@ -327,10 +349,12 @@ public class UISprite : UIWidget
 		uvs.Add(uv0);
 		uvs.Add(new Vector2(uv0.x, uv1.y));
 
+		Color colF = color;
+		colF.a *= mPanel.alpha;
 #if UNITY_3_5_4
-		Color col = color;
+		Color col = atlas.premultipliedAlpha ? NGUITools.ApplyPMA(colF) : colF;
 #else
-		Color32 col = color;
+		Color32 col = atlas.premultipliedAlpha ? NGUITools.ApplyPMA(colF) : colF;
 #endif
 		cols.Add(col);
 		cols.Add(col);

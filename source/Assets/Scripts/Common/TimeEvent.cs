@@ -7,6 +7,9 @@ namespace Assets.Scripts.Common
 		private readonly float _duration;
 		private float _lastTimeOccured;
 
+		public float LifeTime{ get { return Time.time - _lastTimeOccured; } }
+		public float LifeTimePercent{ get { return Mathf.Clamp(LifeTime*100/_duration, 0, 100); } }
+
 		public TimeEvent(float duration)
 		{
 			_duration = duration;
@@ -20,6 +23,6 @@ namespace Assets.Scripts.Common
 				_lastTimeOccured = Time.time;
 			return isOccurred;
 		}
-		
+
 	}
 }

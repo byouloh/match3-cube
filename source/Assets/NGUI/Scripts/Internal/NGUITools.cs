@@ -1,12 +1,13 @@
 //----------------------------------------------
 //            NGUI: Next-Gen UI kit
-// Copyright © 2011-2012 Tasharen Entertainment
+// Copyright Â© 2011-2012 Tasharen Entertainment
 //----------------------------------------------
 
 using UnityEngine;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 
 /// <summary>
 /// Helper class containing generic functions used throughout the UI library.
@@ -20,7 +21,7 @@ static public class NGUITools
 	static float mGlobalVolume = 1f;
 
 	/// <summary>
-	/// Globally accessible volume affecting all music.
+	/// Globally accessible volume affecting all sounds played via NGUITools.PlaySound().
 	/// </summary>
 
 	static public float soundVolume
@@ -190,11 +191,13 @@ static public class NGUITools
 		return NGUIMath.DecimalToHex(i);
 	}
 
+	static Color mInvisible = new Color(0f, 0f, 0f, 0f);
+
 	/// <summary>
 	/// Parse an embedded symbol, such as [FFAA00] (set color) or [-] (undo color change)
 	/// </summary>
 
-	static public int ParseSymbol (string text, int index, List<Color> colors)
+	static public int ParseSymbol (string text, int index, List<Color> colors, bool premultiply)
 	{
 		int length = text.Length;
 
@@ -220,6 +223,9 @@ static public class NGUITools
 							return 0;
 
 						c.a = colors[colors.Count - 1].a;
+						if (premultiply && c.a != 1f)
+							c = Color.Lerp(mInvisible, c, c.a);
+
 						colors.Add(c);
 					}
 					return 8;
@@ -245,7 +251,7 @@ static public class NGUITools
 
 				if (c == '[')
 				{
-					int retVal = ParseSymbol(text, i, null);
+					int retVal = ParseSymbol(text, i, null, false);
 
 					if (retVal > 0)
 					{
@@ -753,5 +759,20 @@ static public class NGUITools
 		}
 		return null;
 #endif
+	}
+
+	/// <summary>
+	/// Pre-multiply shaders result in a black outline if this operation is done in the shader. It's better to do it outside.
+	/// </summary>
+
+	static public Color ApplyPMA (Color c)
+	{
+		if (c.a != 1f)
+		{
+			c.r *= c.a;
+			c.g *= c.a;
+			c.b *= c.a;
+		}
+		return c;
 	}
 }

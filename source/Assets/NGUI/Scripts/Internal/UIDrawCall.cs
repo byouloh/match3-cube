@@ -17,7 +17,7 @@ public class UIDrawCall : MonoBehaviour
 	public enum Clipping
 	{
 		None,
-		HardClip,	// Uses the hardware clip() function -- may be slow on some mobile devices
+		HardClip,	// Obsolete. Used to use clip() but it's not supported by some devices.
 		AlphaClip,	// Adjust the alpha, compatible with all devices
 		SoftClip,	// Alpha-based clipping with a softened edge
 	}
@@ -143,19 +143,17 @@ public class UIDrawCall : MonoBehaviour
 
 			if (mClipping != Clipping.None)
 			{
-				const string hard	= " (HardClip)";
 				const string alpha	= " (AlphaClip)";
 				const string soft	= " (SoftClip)";
 
 				// Figure out the normal shader's name
 				string shaderName = mSharedMat.shader.name;
-				shaderName = shaderName.Replace(hard, "");
 				shaderName = shaderName.Replace(alpha, "");
 				shaderName = shaderName.Replace(soft, "");
 
 				// Try to find the new shader
-				if (mClipping == Clipping.HardClip) shader = Shader.Find(shaderName + hard);
-				else if (mClipping == Clipping.AlphaClip) shader = Shader.Find(shaderName + alpha);
+				if (mClipping == Clipping.HardClip ||
+					mClipping == Clipping.AlphaClip) shader = Shader.Find(shaderName + alpha);
 				else if (mClipping == Clipping.SoftClip) shader = Shader.Find(shaderName + soft);
 
 				// If there is a valid shader, assign it to the custom material
@@ -165,9 +163,18 @@ public class UIDrawCall : MonoBehaviour
 			// If we found the shader, create a new material
 			if (shader != null)
 			{
-				mClippedMat = new Material(mSharedMat);
-				mClippedMat.hideFlags = HideFlags.DontSave;
+				if (mClippedMat == null)
+				{
+					mClippedMat = new Material(mSharedMat);
+					mClippedMat.hideFlags = HideFlags.DontSave;
+				}
 				mClippedMat.shader = shader;
+				mClippedMat.mainTexture = mSharedMat.mainTexture;
+			}
+			else if (mClippedMat != null)
+			{
+				NGUITools.Destroy(mClippedMat);
+				mClippedMat = null;
 			}
 		}
 		else if (mClippedMat != null)
@@ -184,8 +191,8 @@ public class UIDrawCall : MonoBehaviour
 				Shader shader = Shader.Find("Unlit/Depth Cutout");
 				mDepthMat = new Material(shader);
 				mDepthMat.hideFlags = HideFlags.DontSave;
-				mDepthMat.mainTexture = mSharedMat.mainTexture;
 			}
+			mDepthMat.mainTexture = mSharedMat.mainTexture;
 		}
 		else if (mDepthMat != null)
 		{
@@ -233,6 +240,10 @@ public class UIDrawCall : MonoBehaviour
 			if (mRen == null)
 			{
 				mRen = gameObject.AddComponent<MeshRenderer>();
+				UpdateMaterials();
+			}
+			else if (mClippedMat != null && mClippedMat.mainTexture != mSharedMat.mainTexture)
+			{
 				UpdateMaterials();
 			}
 

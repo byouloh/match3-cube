@@ -18,6 +18,11 @@ namespace Assets.Scripts.Common
 			}
 		}
 
-		
+		public static void Log(bool condition, object message)
+		{
+			if (condition)
+				Log(message);
+		}
+
 	}
 }

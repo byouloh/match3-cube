@@ -19,23 +19,20 @@ namespace Assets.Scripts
 		public void Awake()
 		{
 			Instance = this;
-		}
-
-		public void Start()
-		{
 			GameEvents.StateChanged.Subscribe(OnStateChanged);
-			GameEvents.NewGameStarted.Subscribe(OnNewGameStarted);
+			GameEvents.StartNewGame.Subscribe(OnStartNewGame);
 		}
 
 		public void Update()
 		{
 			if (_lastTimeStateChanged + HintPauseDelay <= Time.time &&
-			    _lastTimeHintShowed + OneHitPeriodDelay <= Time.time)
+			    _lastTimeHintShowed + OneHitPeriodDelay <= Time.time &&
+			    !FieldManager.Instance.HasMatches())
 			{
 				ShowHint(0.5f);
 			}
 
-			if (_hasStartGameHint && !GameLocker.IsLocked)
+			if (_hasStartGameHint && !GameLocker.IsLocked && !FieldManager.Instance.HasMatches())
 			{
 				_hasStartGameHint = false;
 				ShowHint(3);
@@ -48,7 +45,7 @@ namespace Assets.Scripts
 			_lastTimeHintShowed = Time.time;
 		}
 
-		private void OnNewGameStarted(GameEventArgs gameEventArgs)
+		private void OnStartNewGame(GameEventArgs gameEventArgs)
 		{
 			_hasStartGameHint = true;
 		}		

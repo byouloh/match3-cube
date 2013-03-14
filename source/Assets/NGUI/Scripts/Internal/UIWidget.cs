@@ -1,4 +1,4 @@
-﻿//----------------------------------------------
+//----------------------------------------------
 //            NGUI: Next-Gen UI kit
 // Copyright © 2011-2012 Tasharen Entertainment
 //----------------------------------------------
@@ -26,13 +26,13 @@ public abstract class UIWidget : MonoBehaviour
 	}
 
 	// Cached and saved values
-	[HideInInspector][SerializeField] Material mMat;
-	[HideInInspector][SerializeField] Texture mTex;
+	[HideInInspector][SerializeField] protected Material mMat;
+	[HideInInspector][SerializeField] protected Texture mTex;
 	[HideInInspector][SerializeField] Color mColor = Color.white;
 	[HideInInspector][SerializeField] Pivot mPivot = Pivot.Center;
 	[HideInInspector][SerializeField] int mDepth = 0;
-	Transform mTrans;
-	UIPanel mPanel;
+	protected Transform mTrans;
+	protected UIPanel mPanel;
 
 	protected bool mChanged = true;
 	protected bool mPlayMode = true;
@@ -46,6 +46,12 @@ public abstract class UIWidget : MonoBehaviour
 	UIGeometry mGeom = new UIGeometry();
 
 	/// <summary>
+	/// Whether the widget is visible.
+	/// </summary>
+
+	public bool isVisible { get { return finalAlpha > 0.001f; } }
+
+	/// <summary>
 	/// Color used by the widget.
 	/// </summary>
 
@@ -56,6 +62,12 @@ public abstract class UIWidget : MonoBehaviour
 	/// </summary>
 
 	public float alpha { get { return mColor.a; } set { Color c = mColor; c.a = value; color = c; } }
+
+	/// <summary>
+	/// Widget's final alpha, after taking the panel's alpha into account.
+	/// </summary>
+
+	public float finalAlpha { get { if (mPanel == null) CreatePanel(); return (mPanel != null) ? mColor.a * mPanel.alpha : mColor.a; } }
 
 	/// <summary>
 	/// Set or get the value that specifies where the widget's pivot point should be.
@@ -134,16 +146,19 @@ public abstract class UIWidget : MonoBehaviour
 		}
 		set
 		{
-			if (mMat == null || mMat.mainTexture != value)
+			Material mat = material;
+
+			if (mat == null || mat.mainTexture != value)
 			{
 				if (mPanel != null) mPanel.RemoveWidget(this);
 
 				mPanel = null;
 				mTex = value;
+				mat = material;
 
-				if (mMat != null)
+				if (mat != null)
 				{
-					mMat.mainTexture = value;
+					mat.mainTexture = value;
 					if (enabled) CreatePanel();
 				}
 			}
@@ -174,6 +189,13 @@ public abstract class UIWidget : MonoBehaviour
 	}
 
 	/// <summary>
+	/// Only sets the local flag, does not notify the panel.
+	/// In most cases you will want to use MarkAsChanged() instead.
+	/// </summary>
+
+	public void MarkAsChangedLite () { mChanged = true; }
+
+	/// <summary>
 	/// Tell the panel responsible for the widget that something has changed and the buffers need to be rebuilt.
 	/// </summary>
 
@@ -197,7 +219,7 @@ public abstract class UIWidget : MonoBehaviour
 	/// Ensure we have a panel referencing this widget.
 	/// </summary>
 
-	void CreatePanel ()
+	public void CreatePanel ()
 	{
 		if (mPanel == null && enabled && NGUITools.GetActive(gameObject) && material != null)
 		{

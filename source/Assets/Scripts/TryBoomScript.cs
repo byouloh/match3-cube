@@ -1,3 +1,4 @@
+using System;
 using Assets.Scripts.Events;
 using UnityEngine;
 
@@ -22,11 +23,16 @@ namespace Assets.Scripts
 		public void Awake()
 		{
 			Instance = this;
+			GameEvents.StateChanged.Subscribe(args => _shouldCheckOnDeadEnd = true);
+			GameEvents.StartNewGame.Subscribe(OnStartNewGame);
 		}
 
-		public void Start()
+		private void OnStartNewGame(GameEventArgs gameEventArgs)
 		{
-			GameEvents.StateChanged.Subscribe(args => _shouldCheckOnDeadEnd = true);
+			RemainHints = HintsOnStart;
+			_isDeadEnd = false;
+			_isHintShowing = false;
+			iTween.Stop(TryBoomButton);
 		}
 
 		public void Update()
@@ -83,14 +89,6 @@ namespace Assets.Scripts
 		{
 			AudioManager.Play(Sound.Punch);
 			FieldManager.Instance.ClearTopLair();
-			_isDeadEnd = false;
-			_isHintShowing = false;
-			iTween.Stop(TryBoomButton);
-		}
-
-		public void Reset()
-		{
-			RemainHints = HintsOnStart;
 			_isDeadEnd = false;
 			_isHintShowing = false;
 			iTween.Stop(TryBoomButton);
