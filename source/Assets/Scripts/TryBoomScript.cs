@@ -46,6 +46,16 @@ namespace Assets.Scripts
 			{
 				ShowHint();
 			}
+
+			if (_isHintShowing)
+			{
+				if (FieldManager.Instance.HasAvailableMoves())
+				{
+					_isDeadEnd = false;
+					_isHintShowing = false;
+					iTween.Stop(TryBoomButton);
+				}
+			}
 		}
 
 		private void CheckOnDeadEnd()

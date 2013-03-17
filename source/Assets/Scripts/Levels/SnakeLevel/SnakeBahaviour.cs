@@ -210,6 +210,7 @@ namespace Assets.Scripts.Levels.SnakeLevel
 					SetStrawberryNextPosition();
 					AnimateStrawberry();
 					GameEvents.StrawberryRemoved.Publish(GameEventArgs.Empty);
+					AudioManager.Play(Sound.MoveAway);
 				}
 
 				if (_snake.Contains(positionEventArgs.Position))

@@ -53,6 +53,7 @@ namespace Assets.Scripts.Levels.SnakeLevel
 				nextPartNewPosition = temp;
 			}
 			SetHeadDirection(direction);
+			AudioManager.Play(Sound.SnakeMove);
 		}
 
 		public void Eat(Direction direction)
@@ -61,6 +62,7 @@ namespace Assets.Scripts.Levels.SnakeLevel
 			Move(direction);
 			AddSnakeBody(tailPosition);
 			SetHeadDirection(direction);
+			AudioManager.Play(Sound.SnakeEat);
 		}
 
 		public bool Contains(Position position)
@@ -102,6 +104,7 @@ namespace Assets.Scripts.Levels.SnakeLevel
 				_parts.Remove(_parts[ind]);
 				GameEvents.SnakePartRemoved.Publish(GameEventArgs.Empty);
 			}
+			AudioManager.Play(Sound.MoveAway);
 		}
 	}
 }

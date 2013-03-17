@@ -10,6 +10,9 @@ namespace Assets.Scripts
 		Fail,
 		Punch,
 		Turn,
-		VirusGone
+		SnakeEat,
+		SnakeMove,
+		MoveAway,
+		GameOver
 	}
 }

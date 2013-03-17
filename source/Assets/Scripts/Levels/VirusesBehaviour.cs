@@ -78,7 +78,7 @@ namespace Assets.Scripts.Levels
 				{
 					_viruses.Remove(virus);
 					Destroy(virus.gameObject);
-					AudioManager.Play(Sound.VirusGone);
+					AudioManager.Play(Sound.MoveAway);
 					GameEvents.VirusGone.Publish(GameEventArgs.Empty);
 				}
 			}

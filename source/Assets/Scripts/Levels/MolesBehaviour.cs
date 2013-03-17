@@ -45,6 +45,7 @@ namespace Assets.Scripts.Levels
 
 			CubeItem otherCube = FieldManager.Instance.GetCube(newPosition.X, newPosition.Y);
 			StartCoroutine(FieldManager.Instance.Swap(_mole, otherCube));
+			AudioManager.Play(Sound.SnakeMove);
 		}
 
 		public override void OnRun()

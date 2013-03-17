@@ -1,9 +1,11 @@
 ﻿using System;
+using Assets.Scripts.Common;
+using Assets.Scripts.Events;
 using UnityEngine;
 
 namespace Assets.Scripts
 {
-	public class AudioManager : MonoBehaviour
+	public class AudioManager : MonoBehaviourBase
 	{
 		private static AudioManager _instance;
 
@@ -17,6 +19,10 @@ namespace Assets.Scripts
 		public AudioClip Fail;
 		public AudioClip Punch;
 		public AudioClip Turn;
+		public AudioClip SnakeEat;
+		public AudioClip SnakeMove;
+		public AudioClip MoveAway;
+		public AudioClip GameOver;
 
 		public AudioSource ClockAudioSource;
 		public AudioSource MusicAudioSource;
@@ -24,6 +30,8 @@ namespace Assets.Scripts
 		public void Awake()
 		{
 			_instance = this;
+
+			GameEvents.GameOver.Subscribe(args => Play(Sound.GameOver));
 		}
 
 		public void Start()
@@ -64,8 +72,17 @@ namespace Assets.Scripts
 				case Sound.Turn:
 					audio.PlayOneShot(Turn);
 					break;
-				case Sound.VirusGone:
-					audio.PlayOneShot(Click); //todo: change
+				case Sound.SnakeEat:
+					audio.PlayOneShot(SnakeEat);
+					break;
+				case Sound.SnakeMove:
+					audio.PlayOneShot(SnakeMove);
+					break;
+				case Sound.MoveAway:
+					audio.PlayOneShot(MoveAway);
+					break;
+				case Sound.GameOver:
+					audio.PlayOneShot(GameOver);
 					break;
 				default:
 					throw new NotSupportedException(sound.ToString());
