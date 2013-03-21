@@ -42,8 +42,8 @@ namespace Assets.Scripts.GUIs
 
 		public void Update()
 		{
-			ScoreLabel.text = string.Format("Score: {0}", ScoreManager.Instance.ViewScore);
-			TimerLabel.text = string.Format("Time: {0}", TimerManager.Instance.RemainSeconds);
+			ScoreLabel.text = ScoreManager.Instance.ViewScore.ToString();
+			TimerLabel.text = TimerManager.Instance.RemainSeconds.ToString();
 
 			float yOffset = LevelsManager.Instance.GetLevelsProgress()*LevelPartHeight;
 			LevelArrow.localPosition = _levelArrowDefaultPosition + new Vector3(0, yOffset, 0);

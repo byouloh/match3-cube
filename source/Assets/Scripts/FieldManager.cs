@@ -540,5 +540,9 @@ namespace Assets.Scripts
 			return position.X >= 0 && position.X < X && position.Y >= 0 && position.Y < Y;
 		}
 
+		public CubeItem GetCubeItem(Vector2 position)
+		{
+			return GetTopLairCubes().FirstOrDefault(cubeItem => cubeItem.Contains(position));
+		}
 	}
 }

@@ -13,7 +13,7 @@ namespace Assets.Scripts
 		{
 			GUILayout.BeginVertical();
 			GUILayout.Label(_fps.ToString());
-			GUILayout.Label(string.Format("Is web player:{0}", Application.isWebPlayer));
+			//GUILayout.Label(string.Format("Is web player:{0}", Application.isWebPlayer));
 			GUILayout.EndVertical();
 		} 
 

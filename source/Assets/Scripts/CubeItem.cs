@@ -119,5 +119,11 @@ namespace Assets.Scripts
 			IsMole = false;
 			renderer.material = Material;
 		}
+
+		public bool Contains(Vector2 position)
+		{
+			Vector3 wordPosition = Camera.main.ScreenToWorldPoint(position);
+			return collider.bounds.Contains(wordPosition);
+		}
 	}
 }

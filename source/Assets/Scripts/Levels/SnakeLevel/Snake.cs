@@ -9,9 +9,12 @@ namespace Assets.Scripts.Levels.SnakeLevel
 	public class Snake : MonoBehaviourBase
 	{
 		private readonly List<SnakePart> _parts;
+		private SnakePart _headLeft;
+		private SnakePart _headRight;
 
 		public Transform BodyPrefab;
-		public Transform HeadPrefab;
+		public Transform HeadLeftPrefab;
+		public Transform HeadRightPrefab;
 
 		public Position HeadPosition { get { return _parts[0].Position; } }
 
@@ -24,15 +27,20 @@ namespace Assets.Scripts.Levels.SnakeLevel
 		{
 			AddSnakeHeader(new Position(3, 3));
 			AddSnakeBody(new Position(2, 3));
-			SetHeadDirection(Direction.Left);
+			SetHeadDirection(Direction.Right);
 		}
 
 		private void AddSnakeHeader(Position position)
 		{
-			SnakePart head = Instantiate<Transform>(HeadPrefab).GetComponent<SnakePart>();
-			head.Transform.parent = Transform;
-			head.SetPosition(position);
-			_parts.Add(head);
+			_headLeft = Instantiate<Transform>(HeadLeftPrefab).GetComponent<SnakePart>();
+			_headLeft.Transform.parent = Transform;
+			_headLeft.SetPosition(position);
+			_headLeft.gameObject.SetActive(false);			
+
+			_headRight = Instantiate<Transform>(HeadRightPrefab).GetComponent<SnakePart>();
+			_headRight.Transform.parent = Transform;
+			_headRight.SetPosition(position);
+			_parts.Add(_headRight);
 		}
 
 		private void AddSnakeBody(Position position)
@@ -46,10 +54,19 @@ namespace Assets.Scripts.Levels.SnakeLevel
 		public void Move(Direction direction)
 		{
 			Position nextPartNewPosition = direction.Apply(_parts[0].Position);
-			foreach (SnakePart snakePart in _parts)
+			for (int i = 0; i < _parts.Count; i++)
 			{
+				SnakePart snakePart = _parts[i];
 				Position temp = snakePart.Position.Clone();
-				snakePart.MoveTo(nextPartNewPosition);
+				if (i == 0)
+				{
+					_headLeft.MoveTo(nextPartNewPosition);
+					_headRight.MoveTo(nextPartNewPosition);
+				}
+				else
+				{
+					snakePart.MoveTo(nextPartNewPosition);
+				}
 				nextPartNewPosition = temp;
 			}
 			SetHeadDirection(direction);
@@ -72,22 +89,38 @@ namespace Assets.Scripts.Levels.SnakeLevel
 
 		public void Destroy()
 		{
+			_parts.RemoveAt(0);
 			_parts.ForEach(p => Destroy(p.gameObject));
+			Destroy(_headRight.gameObject);
+			Destroy(_headLeft.gameObject);
 			Destroy(gameObject);
 		}
 
 		private void SetHeadDirection(Direction direction)
 		{
-			SnakePart head = _parts[0];
+			SnakePart head;
+			if (direction == Direction.Right)
+			{
+				head = _headLeft;
+				_headRight.gameObject.SetActive(false);
+			}
+			else
+			{
+				head = _headRight;
+				_headLeft.gameObject.SetActive(false);
+			}
+			head.gameObject.SetActive(true);
 			head.Transform.rotation = new Quaternion(0, 0, 0, 0);
+			_parts[0] = head;
+
 			if (direction == Direction.Up)
-				head.transform.RotateAroundLocal(Vector3.forward, 90);//ok
+				head.transform.RotateAroundLocal(Vector3.forward, 90);
 			else if (direction == Direction.Down)
 				head.transform.RotateAroundLocal(Vector3.forward, 180);
 			else if (direction == Direction.Left)
-				head.transform.RotateAroundLocal(Vector3.forward, 0);//ok
+				head.transform.RotateAroundLocal(Vector3.forward, 0);
 			else if (direction == Direction.Right)
-				head.transform.RotateAroundLocal(Vector3.forward, 180);
+				head.transform.RotateAroundLocal(Vector3.forward, 0);
 		}
 
 		public void Cut(Position position)
