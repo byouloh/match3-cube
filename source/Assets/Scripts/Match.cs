@@ -20,7 +20,7 @@ namespace Assets.Scripts
 		{
 			string str = string.Empty;
 			foreach (CubeItem cubeItem in Cubes)
-				str += "{X:" + cubeItem.X + ",Y:" + cubeItem.Y + "}";
+				str += "Position:" + cubeItem.Position;
 			return str;
 		}
 	}

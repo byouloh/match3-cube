@@ -12,7 +12,7 @@ namespace Assets.Scripts.Levels
 	{
 		public const string LEVEL_TOAST_STYLE = "LevelToastStyleKey";
 
-		private readonly int[] _levelPoints = new int[] {100, 150, 200, 250, 300, 350, 400, 450, 500, 550};
+		private readonly int[] _levelPoints = new int[] {150, 300, 400, 500, 600, 700, 800, 900, 1000, 1100};
 		private List<Level> _levels;
 
 		public Level CurrentLevel { get; private set; }
@@ -81,33 +81,8 @@ namespace Assets.Scripts.Levels
 				});
 			_levels.Add(new Level
 				{
-					Title = "Day and night",
-					Behaviour = DayNightBehaviour.Instance
-				});
-			_levels.Add(new Level
-				{
-					Title = "Spotlights",
-					Behaviour = LightsBehaviour.Instance
-				});
-			_levels.Add(new Level
-				{
-					Title = "Wiggle",
-					Behaviour = WiggleBehaviour.Instance
-				});
-			_levels.Add(new Level
-				{
 					Title = "Snake",
 					Behaviour = SnakeBahaviour.Instance
-				});
-			_levels.Add(new Level
-				{
-					Title = "Turn",
-					Behaviour = TurnBehaviour.Instance
-				});
-			_levels.Add(new Level
-				{
-					Title = "Rotation",
-					Behaviour = RotationBehaviour.Instance
 				});
 			_levels.Add(new Level
 				{
@@ -123,6 +98,31 @@ namespace Assets.Scripts.Levels
 				{
 					Title = "Questions",
 					Behaviour = QuestionsBehaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Empty",
+					Behaviour = SnakeBahaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Empty",
+					Behaviour = VirusesBehaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Empty",
+					Behaviour = MolesBehaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Empty",
+					Behaviour = QuestionsBehaviour.Instance
+				});
+			_levels.Add(new Level
+				{
+					Title = "Empty",
+					Behaviour = EmptyBehaviour.Instance
 				});
 			NormalizeLevelNumbers();
 		}

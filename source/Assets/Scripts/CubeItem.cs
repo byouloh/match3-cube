@@ -1,3 +1,4 @@
+using Assets.Scripts.Levels;
 using UnityEngine;
 
 namespace Assets.Scripts
@@ -6,29 +7,29 @@ namespace Assets.Scripts
 	{
 		private static bool _isLocked;
 
-		public int X;
-		public int Y;
-		public int Z;
+		public Position Position { get; set; }
+		public CubeType OriginalValue;
 
-		private Material _material;
-		public Material Material
+		public CubeType Value
 		{
-			get { return _material; }
-			set
-			{
-				_material = value;
-				renderer.material = _material;
-			}
-		}
-
-		public int Value
-		{
-			get { return IsMole ? "Mole".GetHashCode() : Material.name.GetHashCode(); }
+			get { return IsMole ? CubeType.Mole : OriginalValue; }
 		}
 
 		public bool IsQuestion { get; private set; }
 		public bool IsQuestionBlocked { get; set; }
 		public bool IsMole { get; private set; }
+
+		public tk2dSprite Sprite { get { return GetComponent<tk2dSprite>(); } }
+
+		public void OnMouseOver()
+		{
+			Sprite.color = Color.Lerp(Color.white, Color.red, 0.1f);
+		}
+
+		public void OnMouseExit()
+		{
+			Sprite.color = Color.white;
+		}
 
 		public void OnMouseDown()
 		{
@@ -49,53 +50,23 @@ namespace Assets.Scripts
 			_isLocked = false;
 		}
 
-		public void OnMouseOver()
+		public void SetPosition(int x, int y)
 		{
-			renderer.material.color = Color.Lerp(Color.white, Color.red, 0.1f);
-		}
-
-		public void OnMouseExit()
-		{
-			renderer.material.color = Color.white;
-		}
-
-		public void SetPosition(int x, int y, int z)
-		{
-			X = x;
-			Y = y;
-			Z = z;
-		}
-
-		public static void SwapPosition(CubeItem cube1, CubeItem cube2)
-		{
-			int x = cube1.X;
-			cube1.X = cube2.X;
-			cube2.X = x;
-
-			int y = cube1.Y;
-			cube1.Y = cube2.Y;
-			cube2.Y = y;
-
-			int z = cube1.Z;
-			cube1.Z = cube2.Z;
-			cube2.Z = z;
+			Position = new Position(x, y);
 		}
 
 		public void UpdatePosition()
 		{
 			float xOffset = -3.0f*FieldManager.Instance.CubeArea;
 			float yOffset = -3.0f*FieldManager.Instance.CubeArea;
-			float zOffset = -3.0f*FieldManager.Instance.CubeArea;
-			Vector3 position = new Vector3(X*FieldManager.Instance.CubeArea + xOffset,
-			                               Y*FieldManager.Instance.CubeArea + yOffset,
-			                               Z*FieldManager.Instance.CubeArea + zOffset);
-			transform.localPosition = position;
+			transform.localPosition = new Vector2(Position.X*FieldManager.Instance.CubeArea + xOffset,
+			                                      Position.Y*FieldManager.Instance.CubeArea + yOffset);
 			transform.localRotation = new Quaternion();
 		}
 
 		public override string ToString()
 		{
-			return string.Format("X:{0}, Y:{1}, Z:{2}", X, Y, Z);
+			return string.Format("Position:" + Position);
 		}
 
 		public void TransformToQuestion()
@@ -117,13 +88,30 @@ namespace Assets.Scripts
 		{
 			IsQuestion = false;
 			IsMole = false;
-			renderer.material = Material;
+			//renderer.material = Material;
 		}
 
 		public bool Contains(Vector2 position)
 		{
 			Vector3 wordPosition = Camera.main.ScreenToWorldPoint(position);
 			return collider.bounds.Contains(wordPosition);
+		}
+
+		public static bool IsNeighbors(CubeItem cube1, CubeItem cube2)
+		{
+			return Mathf.Abs(cube1.Position.X - cube2.Position.X) + Mathf.Abs(cube1.Position.Y - cube2.Position.Y) == 1;
+		}
+
+		public void MarkSelected()
+		{
+			iTween.ScaleTo(Sprite.gameObject, new Vector3(1.1f, 1.1f, 1.0f), 0.5f);
+			Sprite.transform.position = new Vector3(Sprite.transform.position.x, Sprite.transform.position.y, -1);
+		}
+
+		public void MarkUnSelected()
+		{
+			iTween.ScaleTo(Sprite.gameObject, new Vector3(1, 1, 1), 0.5f);
+			Sprite.transform.position = new Vector3(Sprite.transform.position.x, Sprite.transform.position.y, 0);
 		}
 	}
 }

@@ -38,6 +38,17 @@ namespace Assets.Scripts.Levels
 			Y = position.Y;
 		}
 
+		public static void Swap(Position position1, Position position2)
+		{
+			int temp = position1.X;
+			position1.X = position2.X;
+			position2.X = temp;
+
+			temp = position1.Y;
+			position1.Y = position2.Y;
+			position2.Y = temp;
+		}
+
 		public static Position operator -(Position position1, Position position2)
 		{
 			return new Position(position1.X - position2.X, position1.Y - position2.Y);

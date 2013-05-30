@@ -1,11 +1,20 @@
 using System;
+using System.Collections.Generic;
 using Assets.Scripts.Levels;
 using Random = UnityEngine.Random;
 
 namespace Assets.Scripts.Common
 {
-	public class GameRandom
+	public static class GameRandom
 	{
+		public static void Shuffle<T>(this List<T> list)
+		{
+			T[] array = list.ToArray();
+			GameRandom.ShuffleArray(array);
+			list.Clear();
+			list.AddRange(array);
+		}
+
 		public static bool NextBool()
 		{
 			return Random.Range(0, 2) == 1;

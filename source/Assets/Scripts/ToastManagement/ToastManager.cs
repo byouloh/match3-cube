@@ -74,21 +74,30 @@ namespace Assets.Scripts.ToastManagement
 
 		public static void Push(string message)
 		{
+			return;
 			Instance.PushInternal(message, GetDefaultStartPosition(), DEFAULT_TOAST_STYLE_NAME);
 		}
 
 		public static void Push(string message, Vector2 position, string key)
 		{
+			return;
 			Instance.PushInternal(message, position, key);
 		}
 
 		public static void Push(string message, string key)
 		{
+			return;
 			Instance.PushInternal(message, null, key);
 		}
 
 		private void PushInternal(string message, Vector2? position, string key)
 		{
+			if (!enabled)
+			{
+				Debug.Log("Toast manager is not enabled.");
+				return;
+			}
+
 			UILabel toastPrefab = GetToastPrefab(key);
 			UILabel label = Instantiate<UILabel>(toastPrefab);
 			label.text = message;

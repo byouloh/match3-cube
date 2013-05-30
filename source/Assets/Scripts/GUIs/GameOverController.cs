@@ -50,7 +50,7 @@ namespace Assets.Scripts.GUIs
 			ButtonHandler.UnblockButton(PlayAgainButton);
 			CubeItem.Lock();
 
-			ScoreLabel.text = string.Format("Score: {0}", ScoreManager.Instance.Score);
+			ScoreLabel.text = ScoreManager.Instance.Score.ToString();
 
 			NewRecordLabel.gameObject.SetActive(false);
 			if (ScoreManager.Instance.Score > AppPrefs.Instance.BestScore)
@@ -60,7 +60,7 @@ namespace Assets.Scripts.GUIs
 				NewRecordLabel.gameObject.SetActive(true);
 			}
 
-			BestScoreLabel.text = string.Format("Best score: {0}", AppPrefs.Instance.BestScore);
+			BestScoreLabel.text = AppPrefs.Instance.BestScore.ToString();
 			gameObject.SetActive(true);
 		}
 

@@ -15,6 +15,17 @@ namespace Assets.Scripts.Common
 			}
 		}
 
+		private Camera _camera;
+		public Camera Camera
+		{
+			get
+			{
+				if (_camera == null)
+					_camera = camera;
+				return _camera;
+			}
+		}
+
 		protected T Instantiate<T>(Object obj) where T : Object
 		{
 			return (T)Instantiate(obj);

@@ -6,6 +6,7 @@ using Assets.Scripts.Common;
 using Assets.Scripts.Events;
 using Assets.Scripts.Levels;
 using Assets.Scripts.ToastManagement;
+using Assets.Scripts.Tweens;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -17,20 +18,18 @@ namespace Assets.Scripts
 
 		private CubeItem _firstSelectedCube;
 		private CubeItem _secondSelectedCube;
-		private CubeItem[, ,] _field;
+		private CubeItem[,] _field;
 		private CubeItem _selectedCube;
 		private bool _isFirsLaunch = true;
 		private bool _isNewGameStarted;
 
 		public Transform CubesHoster;
-		public Transform CubePrefab;
-		public Material[] Materials;
 		public int X;
 		public int Y;
-		public int Z;
 		public float CubeArea = 1.3f;
 		public Material QuestionMaterial;
 		public Material MoleMaterial;
+		public Transform[] Stars;
 
 		public static FieldManager Instance { get; private set; }
 
@@ -90,11 +89,10 @@ namespace Assets.Scripts
 
 		private void BuildField()
 		{
-			_field = new CubeItem[X, Y, Z];
+			_field = new CubeItem[X, Y];
 			for (int x = 0; x < X; x++)
 				for (int y = 0; y < Y; y++)
-					for (int z = 0; z < Z; z++)
-						CreateCube(x, y, z);
+						CreateCube(x, y);
 		}
 
 		private void ClearField()
@@ -104,25 +102,18 @@ namespace Assets.Scripts
 
 			for (int x = 0; x < X; x++)
 				for (int y = 0; y < Y; y++)
-					for (int z = 0; z < Z; z++)
-						RemoveCube(x, y, z);
+					RemoveCube(_field[x, y]);
 		}
 
-		private void CreateCube(int x, int y, int z)
+		private void CreateCube(int x, int y)
 		{
-			Transform cube = (Transform)Instantiate(CubePrefab);
+			Transform starPrefab = Stars[Random.Range(0, Stars.Length)];
+			Transform cube = (Transform)Instantiate(starPrefab);
 			CubeItem item = cube.GetComponent<CubeItem>();
-			item.SetPosition(x, y, z);
-			item.Material = NextMaterial();
+			item.SetPosition(x, y);
 			cube.parent = CubesHoster;
 			item.UpdatePosition();
-			_field[x, y, z] = item;
-		}
-
-		private Material NextMaterial()
-		{
-			int value = Random.Range(0, Materials.Length);
-			return Materials[value];
+			_field[x, y] = item;
 		}
 
 		#endregion
@@ -139,33 +130,30 @@ namespace Assets.Scripts
 			bool canSelect = CheckCubeSelection(cube);
 			if (canSelect)
 			{
-				if (!IsFirstLevel(cube))
-					return;
-
 				if (_firstSelectedCube == null)
 				{
 					_firstSelectedCube = cube;
-					MarkSelected(cube);
+					cube.MarkSelected();
 				}
 				else
 				{
 					if (_firstSelectedCube == cube)
 					{
-						MarkUnSelected(cube);
+						cube.MarkUnSelected();
 						_firstSelectedCube = null;
 					}
 					else
 					{
-						if (!IsNeighbors(_firstSelectedCube, cube))
+						if (!CubeItem.IsNeighbors(_firstSelectedCube, cube))
 						{
-							MarkUnSelected(_firstSelectedCube);
-							MarkSelected(cube);
+							_firstSelectedCube.MarkUnSelected();
+							cube.MarkSelected();
 							_firstSelectedCube = cube;
 						}
 						else
 						{
 							_secondSelectedCube = cube;
-							MarkSelected(cube);
+							cube.MarkSelected();
 							OnBothCubesSelected();
 						}
 					}
@@ -175,7 +163,7 @@ namespace Assets.Scripts
 
 		private bool CheckCubeSelection(CubeItem cube)
 		{
-			if (VirusesBehaviour.Instance.IsCubeInfected(new Position(cube.X, cube.Y)))
+			if (VirusesBehaviour.Instance.IsCubeInfected(cube.Position))
 			{
 				TimerManager.Instance.AddPenaltySeconds(5);
 				return false;
@@ -196,40 +184,22 @@ namespace Assets.Scripts
 			return true;
 		}
 
-		private bool IsFirstLevel(CubeItem cube)
-		{
-			return cube.Z == 0;
-		}
-
-		private void MarkSelected(CubeItem cube)
-		{
-			iTween.ScaleTo(cube.gameObject, new Vector3(1.0f, 1.0f, 1.5f), 0.5f);
-		}
-
-		private void MarkUnSelected(CubeItem cube)
-		{
-			iTween.ScaleTo(cube.gameObject, new Vector3(1, 1, 1), 0.5f);
-		}
-
-		private bool IsNeighbors(CubeItem cube1, CubeItem cube2)
-		{
-			return cube1.Z == cube2.Z && (Mathf.Abs(cube1.X - cube2.X) + Mathf.Abs(cube1.Y - cube2.Y)) == 1;
-		}
-
 		private void OnBothCubesSelected()
 		{
-			if (IsNeighbors(_firstSelectedCube, _secondSelectedCube))
+			if (CubeItem.IsNeighbors(_firstSelectedCube, _secondSelectedCube))
 			{
 				CubeItem[,] field = GetTopLair();
-				Swap(field, _firstSelectedCube.X, _firstSelectedCube.Y, _secondSelectedCube.X, _secondSelectedCube.Y);
+				Swap(field,
+				     _firstSelectedCube.Position.X, _firstSelectedCube.Position.Y,
+				     _secondSelectedCube.Position.X, _secondSelectedCube.Position.Y);
 				if (HasMatches(field))
 					StartCoroutine(Swap(_firstSelectedCube, _secondSelectedCube));
 				else
 					FailSwap(_firstSelectedCube, _secondSelectedCube);
 			}
 
-			MarkUnSelected(_firstSelectedCube);
-			MarkUnSelected(_secondSelectedCube);
+			_firstSelectedCube.MarkUnSelected();
+			_secondSelectedCube.MarkUnSelected();
 			_firstSelectedCube = null;
 			_secondSelectedCube = null;
 		}
@@ -237,9 +207,9 @@ namespace Assets.Scripts
 		private void OnSnakeMoved(PositionEventArgs positionEventArgs)
 		{
 			if (_firstSelectedCube != null &&
-			    _firstSelectedCube.X == positionEventArgs.Position.X && _firstSelectedCube.Y == positionEventArgs.Position.Y)
+				_firstSelectedCube.Position.Equals(positionEventArgs.Position))
 			{
-				MarkUnSelected(_firstSelectedCube);
+				_firstSelectedCube.MarkUnSelected();
 				_firstSelectedCube = null;
 			}
 		}
@@ -255,7 +225,7 @@ namespace Assets.Scripts
 			{
 				GameLocker.Lock();
 				foreach (CubeItem cubeItem in matches.SelectMany(m => m.Cubes).Distinct())
-					RemoveCube(cubeItem.X, cubeItem.Y);
+					RemoveCube(cubeItem);
 
 				AudioManager.Play(Sound.Match);
 				StartCoroutine(CompleteCube());
@@ -267,25 +237,16 @@ namespace Assets.Scripts
 			}
 		}
 
-		private void RemoveCube(int x, int y)
+		private void RemoveCube(CubeItem cube)
 		{
-			RemoveCube(x, y, 0);
-			GameEvents.CubeRemoved.Publish(new PositionEventArgs(new Position(x, y)));
-		}
+			iTween.Stop(cube.gameObject);
+			cube.transform.SetZ(-1);
 
-		private void RemoveCube(int x, int y, int z)
-		{
-			GameObject cube = _field[x, y, z].gameObject;
-			Vector3 runAwayDirectioin = new Vector3(
-				Random.Range(-0.5f, 0.5f),
-				Random.Range(-0.5f, 0.5f),
-				Random.Range(-0.5f, -0.1f));
+			GravityTween.Run(cube.gameObject, 1.5f);
+			Destroy(cube.gameObject, 1.5f);
 
-			iTween.Stop(cube);
-			iTween.MoveTo(cube, runAwayDirectioin.normalized * 20, 5);
-			Destroy(cube, 2);
-
-			_field[x, y, z] = null;
+			_field[cube.Position.X, cube.Position.Y] = null;
+			GameEvents.CubeRemoved.Publish(new PositionEventArgs(cube.Position));
 			GameEvents.StateChanged.Publish(GameEventArgs.Empty);
 		}
 
@@ -312,9 +273,9 @@ namespace Assets.Scripts
 
 		public IEnumerator Swap(CubeItem cube1, CubeItem cube2)
 		{
-			_field[cube1.X, cube1.Y, 0] = cube2;
-			_field[cube2.X, cube2.Y, 0] = cube1;
-			CubeItem.SwapPosition(cube1, cube2);
+			_field[cube1.Position.X, cube1.Position.Y] = cube2;
+			_field[cube2.Position.X, cube2.Position.Y] = cube1;
+			Position.Swap(cube1.Position, cube2.Position);
 
 			iTween.Stop(cube1.gameObject);
 			iTween.MoveBy(cube1.gameObject,
@@ -337,10 +298,10 @@ namespace Assets.Scripts
 			for (int x = 0; x < X; x++)
 				for (int y = 0; y < Y; y++)
 				{
-					if (_field[x, y, 0] == null)
+					if (_field[x, y] == null)
 					{
 						MoveUpColumn(x, y);
-						CreateCube(x, y, Z - 1);
+						CreateCube(x, y);
 					}
 				}
 
@@ -350,17 +311,17 @@ namespace Assets.Scripts
 
 		private void MoveUpColumn(int x, int y)
 		{
-			for (int z = 1; z < Z; z++)
-			{
-				_field[x, y, z - 1] = _field[x, y, z];
-				CubeItem cube = _field[x, y, z - 1];
-				cube.SetPosition(x, y, z - 1);
-				iTween.MoveBy(cube.gameObject,
-				              iTween.Hash(iT.MoveBy.amount, new Vector3(0, 0, -CubeArea),
-				                          iT.MoveBy.time, 0.5f,
-				                          iT.MoveBy.oncomplete, "UpdatePosition"));
-			}
-			GameEvents.ColumnMovedUp.Publish(new PositionEventArgs(new Position(x, y)));
+			//for (int z = 1; z < Z; z++)
+			//{
+			//	_field[x, y, z - 1] = _field[x, y, z];
+			//	CubeItem cube = _field[x, y, z - 1];
+			//	cube.SetPosition(x, y, z - 1);
+			//	iTween.MoveBy(cube.gameObject,
+			//				  iTween.Hash(iT.MoveBy.amount, new Vector3(0, 0, -CubeArea),
+			//							  iT.MoveBy.time, 0.5f,
+			//							  iT.MoveBy.oncomplete, "UpdatePosition"));
+			//}
+			//GameEvents.ColumnMovedUp.Publish(new PositionEventArgs(new Position(x, y)));
 		}
 
 		#endregion
@@ -371,7 +332,7 @@ namespace Assets.Scripts
 		{
 			for (int x = 0; x < X; x++)
 				for (int y = 0; y < Y; y++)
-					yield return _field[x, y, 0];
+					yield return _field[x, y];
 		}
 
 		private CubeItem[,] GetTopLair()
@@ -379,7 +340,7 @@ namespace Assets.Scripts
 			CubeItem[,] lair = new CubeItem[X, Y];
 			for (int x = 0; x < X; x++)
 				for (int y = 0; y < Y; y++)
-					lair[x, y] = _field[x, y, 0];
+					lair[x, y] = _field[x, y];
 			return lair;
 		}
 
@@ -494,8 +455,8 @@ namespace Assets.Scripts
 			for (int x = 0; x < X; x++)
 				for (int y = 0; y < Y; y++)
 				{
-					RemoveCube(x, y);
-					_field[x, y, 1].IsQuestionBlocked = true;
+					RemoveCube(_field[x, y]);
+					//_field[x, y].IsQuestionBlocked = true;
 				}
 			StartCoroutine(CompleteCube());
 			GameEvents.TopLairCleared.Publish(GameEventArgs.Empty);
@@ -504,12 +465,12 @@ namespace Assets.Scripts
 		public void ShowAvailableMove(float duration)
 		{
 			int[] availableMove = GetAvailableMoves().First();
-			iTween.ShakePosition(_field[availableMove[0], availableMove[1], 0].gameObject,
+			iTween.ShakePosition(_field[availableMove[0], availableMove[1]].gameObject,
 								 iTween.Hash(iT.ShakePosition.amount, new Vector3(0.1f, 0.1f, 0),
 											 iT.ShakePosition.time, duration,
 											 iT.ShakePosition.oncomplete, "UpdatePosition"));
 
-			iTween.ShakePosition(_field[availableMove[2], availableMove[3], 0].gameObject,
+			iTween.ShakePosition(_field[availableMove[2], availableMove[3]].gameObject,
 								 iTween.Hash(iT.ShakePosition.amount, new Vector3(0.1f, 0.1f, 0),
 											 iT.ShakePosition.time, duration,
 											 iT.ShakePosition.oncomplete, "UpdatePosition"));
@@ -517,12 +478,12 @@ namespace Assets.Scripts
 
 		public Vector2 GetCubePosition(int x, int y)
 		{
-			return _field[x, y, 0].transform.position;
+			return _field[x, y].transform.position;
 		}
 
 		public CubeItem GetCube(int x, int y)
 		{
-			return _field[x, y, 0];
+			return _field[x, y];
 		}
 
 		#endregion
@@ -531,8 +492,7 @@ namespace Assets.Scripts
 		{
 			for (int x = 0; x < X; x++)
 				for (int y = 0; y < Y; y++)
-					for (int z = 0; z < Z; z++)
-						_field[x, y, z].UpdatePosition();
+					_field[x, y].UpdatePosition();
 		}
 
 		public bool Contains(Position position)

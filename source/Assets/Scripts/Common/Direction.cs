@@ -27,11 +27,6 @@ namespace Assets.Scripts.Common
 			DY = dy;
 		}
 
-		public Position Apply(int x, int y)
-		{
-			return new Position(x + DX, y + DY);
-		}
-
 		public Position Apply(Position position)
 		{
 			return new Position(position.X + DX, position.Y + DY);

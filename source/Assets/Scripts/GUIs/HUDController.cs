@@ -9,8 +9,8 @@ namespace Assets.Scripts.GUIs
 	{
 		private Vector3 _levelArrowDefaultPosition;
 
-		public ButtonHandler MusicButton;
-		public ButtonHandler SoundsButton;
+		public CheckBoxHandler MusicCheckBox;
+		public CheckBoxHandler SoundsCheckBox;
 		public ButtonHandler TryBoomButton;
 		public UILabel ScoreLabel;
 		public UILabel TimerLabel;
@@ -19,8 +19,14 @@ namespace Assets.Scripts.GUIs
 
 		public void Start ()
 		{
-			MusicButton.Click += MusicButtonOnClick;
-			SoundsButton.Click+=SoundsButtonOnClick;
+			AppPrefs appPrefs = AppPrefs.Instance;
+
+			MusicCheckBox.Click += MusicCheckBoxOnClick;
+			MusicCheckBox.IsChecked = appPrefs.IsMusicDisable;
+	
+			SoundsCheckBox.Click += SoundsCheckBoxOnClick;
+			SoundsCheckBox.IsChecked = appPrefs.IsSoundDisable;
+
 			TryBoomButton.Click+=TryBoomButtonOnClick;
 			_levelArrowDefaultPosition = LevelArrow.localPosition;
 		}
@@ -30,20 +36,20 @@ namespace Assets.Scripts.GUIs
 			TryBoomScript.Instance.TryBoom();
 		}
 
-		private void SoundsButtonOnClick(object sender, EventArgs eventArgs)
+		private void SoundsCheckBoxOnClick(object sender, EventArgs eventArgs)
 		{
 			AudioManager.SoundSwitchOnOff();
 		}
 
-		private void MusicButtonOnClick(object sender, EventArgs eventArgs)
+		private void MusicCheckBoxOnClick(object sender, EventArgs eventArgs)
 		{
 			AudioManager.MusicSwitchOnOff();
 		}
 
 		public void Update()
 		{
-			ScoreLabel.text = ScoreManager.Instance.ViewScore.ToString();
-			TimerLabel.text = TimerManager.Instance.RemainSeconds.ToString();
+			ScoreLabel.text = ScoreManager.Instance.ViewScore.ToString("000");
+			TimerLabel.text = TimerManager.Instance.RemainSeconds.ToString("000");
 
 			float yOffset = LevelsManager.Instance.GetLevelsProgress()*LevelPartHeight;
 			LevelArrow.localPosition = _levelArrowDefaultPosition + new Vector3(0, yOffset, 0);

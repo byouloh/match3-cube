@@ -40,7 +40,7 @@ namespace Assets.Scripts.Levels
 			do
 			{
 				Direction direction = GameRandom.NextDirection();
-				newPosition = direction.Apply(_mole.X, _mole.Y);
+				newPosition = direction.Apply(_mole.Position);
 			} while (!newPosition.IsInRange(0, FieldManager.Instance.X - 1, 0, FieldManager.Instance.Y - 1));
 
 			CubeItem otherCube = FieldManager.Instance.GetCube(newPosition.X, newPosition.Y);
